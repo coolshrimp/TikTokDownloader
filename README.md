@@ -2,7 +2,7 @@
 
 TikTok Downloader is a Windows-based utility designed to simplify bulk or single-video downloads from TikTok user profiles, liked videos, reposts, and favorites. It provides a friendly GUI with the ability to **auto-scroll** to load all user videos, parse video URLs, and easily download them via SnapTik integration.
 
-![Main Interface Screenshot](./screenshots/main-interface.png)
+![Main Interface Screenshot](./screenshot.png)
 
 ---
 
