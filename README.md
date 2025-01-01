@@ -76,38 +76,30 @@ Under the hood, the tool navigates to [SnapTik](https://snaptik.app) in a hidden
 
 ## Version History
 
-### v1.0.0
+### v3
 - **Initial Release**
   - Load user videos (posted content).
-  - Single or All videos download with SnapTik.
+  - Single or All videos download with Snapss.
   - CSV export of the video list.
   - Auto scroll to load more videos.
-  - Thumbnail downloads (optional).
-  - Basic login checks for liked/favorited content.
 
-### v1.1.0
-- **Added**: Reposts / Liked / Favorited content retrieval (logged in).
+### v4
+- Changed download host to SnapTik.
 - **Enhanced**: Improved SnapTik integration and progress tracking.
 - **Fixed**: Minor bug with CSV export not including stats properly.
-
-### v1.2.0
-- **New**: Hidden WebView2 for login status checks without altering the main browsing flow.
+- **ADDED**: Thumbnail downloads (optional).
+  
+### v5
 - **Improved**: Stability of auto-scroll for large accounts.
 - **Optimized**: Performance for multi-video downloads.
+- **Added**: Reposts / Liked / Favorited content retrieval (logged in).
+
+
+## Donate
+
+If you’d like to support the development of tools like this, consider a donation:  
+[**Support Me**](https://links.coolshrimpmodz.com)
 
 ---
 
-## Contributing
-
-1. **Fork** the repository and create a new branch for your changes.
-2. **Submit** a pull request with a clear explanation of your modifications.
-
----
-
-## License
-
-This project is licensed under the [MIT License](./LICENSE).
-
----
-
-**Enjoy downloading TikTok videos!** If you find a bug or have suggestions, feel free to open an [issue](./issues) or contribute to this project.
+Enjoy downloading TikTok videos!** If you find a bug or have suggestions, feel free to open an [issue](./issues).
