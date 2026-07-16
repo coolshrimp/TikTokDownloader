@@ -1,0 +1,27 @@
+# Visual Studio / .NET
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+.vs/
+packages/
+TestResults/
+_ReSharper*/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.cache
+*.pdb
+*.vspscc
+*.vssscc
+
+# Old Visual Studio upgrade leftovers
+_UpgradeReport_Files/
+UpgradeLog*.htm
+UpgradeLog*.XML
+
+# Windows
+Thumbs.db
+desktop.ini
