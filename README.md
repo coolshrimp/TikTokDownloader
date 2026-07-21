@@ -21,9 +21,7 @@ TikTok Downloader is a Windows-based utility designed to simplify bulk or single
 
 ## Installation
 
-1. **Download** the latest release from the [Releases](./releases) section (an EXE file).
-2. **Run** the `.exe`—no formal install required.
-3. Upon first launch, it will initialize the embedded WebView2 control.
+Upon first launch, it will initialize the embedded WebView2 control.
 
 **Requirements**:
 - **Windows 10 or later**  
