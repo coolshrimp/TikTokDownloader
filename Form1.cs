@@ -21,6 +21,12 @@ namespace TikTok_Downloader
         private string lastDownloadedFolderPath;
         private bool isDownloading;
 
+        // Tray icon / background-download support
+        private NotifyIcon trayIcon;
+        private ContextMenuStrip trayMenu;
+        private ToolStripMenuItem trayStatusItem;
+        private bool trayBalloonShown;
+
         private const string FallbackUserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
@@ -63,6 +69,8 @@ namespace TikTok_Downloader
             userTXT.Text = Properties.Settings.Default.lastUser;
             lastDownloadedFolderPath = Properties.Settings.Default.lastFolder;
             thumbCHK.Checked = Properties.Settings.Default.lastThumb;
+
+            InitializeTrayIcon();
 
             // Ensure WebView2 is initialized
             Console.WriteLine("Form1_Load: Ensuring WebView2 is initialized...");
@@ -291,6 +299,73 @@ namespace TikTok_Downloader
                     statusTXT.Text = "Downloading video...";
                     progressBar.Value = 0;
                     DownloadTikTokVideoAsync(videoList.Rows[e.RowIndex].Cells[3].Value?.ToString(), e.RowIndex);
+                }
+            }
+        }
+
+        // ===== Tray icon / background downloads =====
+
+        private void InitializeTrayIcon()
+        {
+            trayStatusItem = new ToolStripMenuItem("Idle") { Enabled = false };
+
+            trayMenu = new ContextMenuStrip();
+            trayMenu.Items.Add(trayStatusItem);
+            trayMenu.Items.Add(new ToolStripSeparator());
+            trayMenu.Items.Add("Show / Hide Window", null, (s, e) => ToggleWindowVisibility());
+            trayMenu.Items.Add("Open Download Folder", null, (s, e) => openFolderBTN_Click(s, e));
+            trayMenu.Items.Add("Stop Downloads", null, (s, e) => cancellationTokenSource?.Cancel());
+            trayMenu.Items.Add(new ToolStripSeparator());
+            trayMenu.Items.Add("Exit", null, (s, e) => Close());
+
+            trayIcon = new NotifyIcon
+            {
+                Icon = this.Icon,
+                Text = "TikTok Downloader",
+                Visible = true,
+                ContextMenuStrip = trayMenu
+            };
+            trayIcon.DoubleClick += (s, e) => ToggleWindowVisibility();
+        }
+
+        private void ToggleWindowVisibility()
+        {
+            if (Visible && WindowState != FormWindowState.Minimized)
+            {
+                Hide();
+            }
+            else
+            {
+                Show();
+                WindowState = FormWindowState.Normal;
+                Activate();
+            }
+        }
+
+        // Updates the tray tooltip + context menu status line (e.g. "Downloading 20/300")
+        private void UpdateTrayStatus(string text)
+        {
+            if (trayIcon == null) return;
+            trayStatusItem.Text = text;
+
+            var tip = "TikTok Downloader - " + text;
+            if (tip.Length > 63) tip = tip.Substring(0, 63); // NotifyIcon.Text hard limit
+            trayIcon.Text = tip;
+        }
+
+        // Minimize => hide to tray; downloads keep running in the background
+        protected override void OnResize(EventArgs e)
+        {
+            base.OnResize(e);
+            if (WindowState == FormWindowState.Minimized && trayIcon != null)
+            {
+                Hide();
+                if (isDownloading && !trayBalloonShown)
+                {
+                    trayBalloonShown = true;
+                    trayIcon.BalloonTipTitle = "TikTok Downloader";
+                    trayIcon.BalloonTipText = "Downloads continue in the background. Double-click the tray icon to restore.";
+                    trayIcon.ShowBalloonTip(3000);
                 }
             }
         }
@@ -546,6 +621,7 @@ namespace TikTok_Downloader
             }
 
             isDownloading = true;
+            UpdateTrayStatus("Downloading 1 video...");
             try
             {
                 // Extract ID
@@ -615,6 +691,7 @@ namespace TikTok_Downloader
             finally
             {
                 isDownloading = false;
+                UpdateTrayStatus("Idle");
             }
         }
 
@@ -635,6 +712,11 @@ namespace TikTok_Downloader
                 lastDownloadedFolderPath = folderBrowserDialog.SelectedPath;
                 stopBTN.Enabled = true;
                 isDownloading = true;
+                trayBalloonShown = false;
+
+                int totalVideos = videoList.Rows.Cast<DataGridViewRow>()
+                    .Count(r => !string.IsNullOrWhiteSpace(r.Cells[3].Value?.ToString()));
+                int currentVideo = 0;
 
                 try
                 {
@@ -646,6 +728,9 @@ namespace TikTok_Downloader
                         string tikTokVideoUrl = row.Cells[3].Value?.ToString();
                         if (string.IsNullOrWhiteSpace(tikTokVideoUrl))
                             continue;
+
+                        currentVideo++;
+                        UpdateTrayStatus($"Downloading {currentVideo}/{totalVideos}");
 
                         string videoId = "TikTokVideo";
                         var m = Regex.Match(tikTokVideoUrl, @"(?<=video/)\d+");
@@ -713,6 +798,9 @@ namespace TikTok_Downloader
                 {
                     isDownloading = false;
                     stopBTN.Enabled = false;
+                    UpdateTrayStatus(cancellationTokenSource.Token.IsCancellationRequested
+                        ? $"Stopped at {currentVideo}/{totalVideos}"
+                        : $"Complete: {currentVideo}/{totalVideos}");
                 }
 
                 progressBar.Value = 100;
@@ -833,6 +921,13 @@ namespace TikTok_Downloader
             Properties.Settings.Default.lastFolder = lastDownloadedFolderPath;
             Properties.Settings.Default.lastThumb = thumbCHK.Checked;
             Properties.Settings.Default.Save();
+
+            if (trayIcon != null)
+            {
+                trayIcon.Visible = false;
+                trayIcon.Dispose();
+                trayIcon = null;
+            }
         }
 
         private void label2_Click(object sender, EventArgs e)

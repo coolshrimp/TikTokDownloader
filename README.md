@@ -16,6 +16,8 @@ TikTok Downloader is a Windows desktop utility for bulk or single-video download
 - **Likes / Favorites / Reposts**: Retrieve liked, favorited, or reposted videos (if you're logged in inside the embedded browser).
 - **CSV Export**: Export the collected video list to a CSV file.
 - **Progress Tracking**: Real-time status and progress for scraping and downloads.
+- **Tray Icon & Background Downloads**: Minimize the window to the system tray while downloads keep running. The tray tooltip and menu show live progress (e.g. "Downloading 20/300"), with quick actions to show/hide the window, open the download folder, stop downloads, or exit.
+- **Login Stays in the Browser**: Logging in to TikTok happens inside the embedded WebView2 browser only — credentials and cookies live in the browser profile, never in the app.
 - **Thumbnail Option**: Download thumbnails alongside the videos for easy reference.
 
 ---
@@ -81,6 +83,7 @@ The status bar always shows which method was used.
 
 ### v6
 - **Added**: Native TikTok downloads — direct media URL pulled from TikTok's own page data, used as the primary method.
+- **Added**: System tray icon with live download status ("Downloading 20/300"), show/hide, open-folder, stop, and exit actions. Minimizing hides the window to the tray while downloads continue.
 - **Changed**: SnapTik is now an automatic fallback instead of the primary downloader.
 - **Fixed**: SnapTik link submission (the URL was never registered by SnapTik's page, so downloads silently failed).
 - **Fixed**: App no longer freezes when a page fails to load — navigation now has a 30-second timeout.
