@@ -100,37 +100,47 @@ namespace TikTok_Downloader
                 webBrowser.CoreWebView2.Settings.IsStatusBarEnabled = false;
             }
 
-            // Start compact (browser panel hidden). First run starts expanded
-            // with the how-to guide visible so new users see what to do.
-            bool firstRun = string.IsNullOrWhiteSpace(userTXT.Text);
-            _isSize1 = !firstRun;
-            this.Size = _isSize1 ? _size1 : _size2;
-            expandBTN.Text = _isSize1 ? "Expand ⮞" : "Shrink ⮜";
-            ShowGuidePage();
+            // Start compact (browser panel hidden). First run shows the
+            // how-to guide overlay over the list so new users see what to do.
+            this.Size = _size1;
+            if (string.IsNullOrWhiteSpace(userTXT.Text))
+                await ShowGuideOverlayAsync();
             statusTXT.Text = "Enter a username, then click Latest Videos or All Videos";
 
             Console.WriteLine("Form1_Load: Load event complete.");
         }
 
-        // In-app how-to guide, shown in the browser panel until a page is loaded
-        private void ShowGuidePage()
+        // In-app how-to guide, shown in an overlay covering the video list
+        private async Task ShowGuideOverlayAsync()
         {
-            if (webBrowser.CoreWebView2 == null) return;
-            webBrowser.CoreWebView2.NavigateToString(GuideHtml);
+            await guideView.EnsureCoreWebView2Async();
+            if (guideView.CoreWebView2 == null) return;
+            guideView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+            guideView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+            guideView.CoreWebView2.NavigateToString(GuideHtml);
+            guideView.Visible = true;
+            guideView.BringToFront();
+            guideBTN.Text = "✖";
         }
 
-        private void ShowHowToUse()
+        private void HideGuideOverlay()
+        {
+            guideView.Visible = false;
+            guideBTN.Text = "❓";
+        }
+
+        private async void guideBTN_Click(object sender, EventArgs e)
+        {
+            if (guideView.Visible) HideGuideOverlay();
+            else await ShowGuideOverlayAsync();
+        }
+
+        private async void ShowHowToUse()
         {
             Show();
             WindowState = FormWindowState.Normal;
             Activate();
-            if (_isSize1)
-            {
-                _isSize1 = false;
-                this.Size = _size2;
-                expandBTN.Text = "Shrink ⮜";
-            }
-            ShowGuidePage();
+            await ShowGuideOverlayAsync();
         }
 
         private void InitializeTooltips()
@@ -144,7 +154,8 @@ namespace TikTok_Downloader
             tips.SetToolTip(thumbCHK, "Also save a .jpg thumbnail next to each video");
             tips.SetToolTip(openFolderBTN, "Open the last download folder");
             tips.SetToolTip(SaveBTN, "Export the video list to a CSV file.\nDropdown: export only the checked videos.");
-            tips.SetToolTip(expandBTN, "Show/hide the browser panel (guide, TikTok login, download progress)");
+            tips.SetToolTip(expandBTN, "Show/hide the browser panel (TikTok login, download progress)");
+            tips.SetToolTip(guideBTN, "Show/hide the How to Use guide");
         }
 
         private const string GuideHtml = @"<!DOCTYPE html>
@@ -183,7 +194,7 @@ namespace TikTok_Downloader
     <h2 style='margin-top:0'>Logging In (optional but recommended)</h2>
     <ul>
       <li>Liked / Favorited tabs and some videos require being logged in.</li>
-      <li>Just log in to <b>tiktok.com right here in this panel</b> &mdash; your session stays in the embedded browser profile. This app <b>never sees or stores your credentials</b>.</li>
+      <li>Click <b>Expand ⮞</b> to open the browser panel and log in to <b>tiktok.com</b> there &mdash; your session stays in the embedded browser profile. This app <b>never sees or stores your credentials</b>.</li>
     </ul>
   </div>
 
@@ -196,6 +207,7 @@ namespace TikTok_Downloader
   </div>
 
   <p class='muted'>Green rows = downloaded &bull; Red rows = failed &bull; Already-downloaded files are skipped in bulk mode.<br>
+  Close this guide with the <b>✖</b> button at the top of the app (it reopens with <b>❓</b>). Loading a video list closes it automatically.<br>
   Created by Coolshrimp Modz &mdash; coolshrimpmodz.com</p>
 </body></html>";
 
@@ -1159,6 +1171,8 @@ namespace TikTok_Downloader
             {
                 return;
             }
+
+            HideGuideOverlay();
 
             var targetUrl = "https://www.tiktok.com/@" + userTXT.Text;
             webBrowser.CoreWebView2.Navigate(targetUrl);

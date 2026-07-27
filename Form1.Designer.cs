@@ -12,6 +12,8 @@ namespace TikTok_Downloader
 
         // Single WebView2 control
         private WebView2 webBrowser;
+        private WebView2 guideView;
+        private Button guideBTN;
         private TextBox userTXT;
         private DataGridView videoList;
         private Label label1;
@@ -89,6 +91,8 @@ namespace TikTok_Downloader
             this.stopBTN = new System.Windows.Forms.Button();
             this.thumbCHK = new System.Windows.Forms.CheckBox();
             this.webBrowser = new Microsoft.Web.WebView2.WinForms.WebView2();
+            this.guideView = new Microsoft.Web.WebView2.WinForms.WebView2();
+            this.guideBTN = new System.Windows.Forms.Button();
             this.getVideosDDB = new wyDay.Controls.SplitButton();
             this.contextMenuStripvideos = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.repostsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -102,6 +106,7 @@ namespace TikTok_Downloader
             this.DonateBTN = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.videoList)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.webBrowser)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.guideView)).BeginInit();
             this.contextMenuStripvideos.SuspendLayout();
             this.contextMenuStripAllVideos.SuspendLayout();
             this.SuspendLayout();
@@ -111,7 +116,7 @@ namespace TikTok_Downloader
             this.userTXT.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
             this.userTXT.Location = new System.Drawing.Point(227, 12);
             this.userTXT.Name = "userTXT";
-            this.userTXT.Size = new System.Drawing.Size(440, 23);
+            this.userTXT.Size = new System.Drawing.Size(420, 23);
             this.userTXT.TabIndex = 1;
             this.userTXT.TextChanged += new System.EventHandler(this.userTXT_TextChanged);
             // 
@@ -247,7 +252,7 @@ namespace TikTok_Downloader
             this.SaveBTN.ContextMenuStrip = this.contextMenuStripSave;
             this.SaveBTN.SplitMenuStrip = this.contextMenuStripSave;
             this.SaveBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.SaveBTN.Location = new System.Drawing.Point(644, 42);
+            this.SaveBTN.Location = new System.Drawing.Point(664, 45);
             this.SaveBTN.Name = "SaveBTN";
             this.SaveBTN.Size = new System.Drawing.Size(120, 32);
             this.SaveBTN.TabIndex = 10;
@@ -258,7 +263,7 @@ namespace TikTok_Downloader
             // openFolderBTN
             // 
             this.openFolderBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.openFolderBTN.Location = new System.Drawing.Point(561, 42);
+            this.openFolderBTN.Location = new System.Drawing.Point(584, 44);
             this.openFolderBTN.Name = "openFolderBTN";
             this.openFolderBTN.Size = new System.Drawing.Size(77, 33);
             this.openFolderBTN.TabIndex = 11;
@@ -284,7 +289,7 @@ namespace TikTok_Downloader
             // stopBTN
             // 
             this.stopBTN.Enabled = false;
-            this.stopBTN.Location = new System.Drawing.Point(489, 42);
+            this.stopBTN.Location = new System.Drawing.Point(514, 44);
             this.stopBTN.Name = "stopBTN";
             this.stopBTN.Size = new System.Drawing.Size(66, 32);
             this.stopBTN.TabIndex = 13;
@@ -295,7 +300,7 @@ namespace TikTok_Downloader
             // thumbCHK
             // 
             this.thumbCHK.AutoSize = true;
-            this.thumbCHK.Location = new System.Drawing.Point(397, 51);
+            this.thumbCHK.Location = new System.Drawing.Point(406, 51);
             this.thumbCHK.Name = "thumbCHK";
             this.thumbCHK.Size = new System.Drawing.Size(86, 17);
             this.thumbCHK.TabIndex = 14;
@@ -312,6 +317,29 @@ namespace TikTok_Downloader
             this.webBrowser.Size = new System.Drawing.Size(1005, 901);
             this.webBrowser.TabIndex = 3;
             this.webBrowser.ZoomFactor = 1D;
+            //
+            // guideView
+            //
+            this.guideView.AllowExternalDrop = false;
+            this.guideView.CreationProperties = null;
+            this.guideView.DefaultBackgroundColor = System.Drawing.Color.White;
+            this.guideView.Location = new System.Drawing.Point(12, 81);
+            this.guideView.Name = "guideView";
+            this.guideView.Size = new System.Drawing.Size(773, 833);
+            this.guideView.TabIndex = 21;
+            this.guideView.Visible = false;
+            this.guideView.ZoomFactor = 1D;
+            //
+            // guideBTN
+            //
+            this.guideBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
+            this.guideBTN.Location = new System.Drawing.Point(655, 8);
+            this.guideBTN.Name = "guideBTN";
+            this.guideBTN.Size = new System.Drawing.Size(38, 31);
+            this.guideBTN.TabIndex = 20;
+            this.guideBTN.Text = "❓";
+            this.guideBTN.UseVisualStyleBackColor = true;
+            this.guideBTN.Click += new System.EventHandler(this.guideBTN_Click);
             // 
             // getVideosDDB
             // 
@@ -443,6 +471,8 @@ namespace TikTok_Downloader
             // Form1
             // 
             this.ClientSize = new System.Drawing.Size(1819, 979);
+            this.Controls.Add(this.guideView);
+            this.Controls.Add(this.guideBTN);
             this.Controls.Add(this.DonateBTN);
             this.Controls.Add(this.allVideoDDB);
             this.Controls.Add(this.getVideosDDB);
@@ -469,6 +499,7 @@ namespace TikTok_Downloader
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.videoList)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.webBrowser)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.guideView)).EndInit();
             this.contextMenuStripvideos.ResumeLayout(false);
             this.contextMenuStripAllVideos.ResumeLayout(false);
             this.ResumeLayout(false);
