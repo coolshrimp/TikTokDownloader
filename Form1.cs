@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,6 +21,14 @@ namespace TikTok_Downloader
         private string html;
         private string lastDownloadedFolderPath;
         private bool isDownloading;
+
+        // videoList column indexes
+        private const int ColCheck = 0;
+        private const int ColID = 1;
+        private const int ColDesc = 2;
+        private const int ColViews = 3;
+        private const int ColUrl = 4;
+        private const int ColDownload = 5;
 
         // Tray icon / background-download support
         private NotifyIcon trayIcon;
@@ -73,6 +82,14 @@ namespace TikTok_Downloader
             InitializeTrayIcon();
             InitializeTooltips();
 
+            // Commit checkbox toggles immediately so batch selection reads current state
+            videoList.CurrentCellDirtyStateChanged += (s, ev) =>
+            {
+                if (videoList.IsCurrentCellDirty && videoList.CurrentCell?.ColumnIndex == ColCheck)
+                    videoList.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            };
+            videoList.ColumnHeaderMouseClick += videoList_ColumnHeaderMouseClick;
+
             // Ensure WebView2 is initialized
             Console.WriteLine("Form1_Load: Ensuring WebView2 is initialized...");
             await webBrowser.EnsureCoreWebView2Async();
@@ -121,11 +138,11 @@ namespace TikTok_Downloader
             tips.SetToolTip(userTXT, "TikTok username without the @");
             tips.SetToolTip(getVideosDDB, "Load the videos currently visible on the profile.\nDropdown: Reposts / Liked / Favorited (login required for some).");
             tips.SetToolTip(allVideoDDB, "Auto-scroll the whole profile to load every video.\nDropdown: All Reposts / All Liked / All Favorited.");
-            tips.SetToolTip(downloadAllBTN, "Download every video in the list to a folder.\nAlready-downloaded videos are skipped.");
+            tips.SetToolTip(downloadAllBTN, "Download every video in the list to a folder.\nDropdown: download only the checked videos.\nAlready-downloaded videos are skipped.");
             tips.SetToolTip(stopBTN, "Stop the current bulk download");
             tips.SetToolTip(thumbCHK, "Also save a .jpg thumbnail next to each video");
             tips.SetToolTip(openFolderBTN, "Open the last download folder");
-            tips.SetToolTip(SaveBTN, "Export the video list to a CSV file");
+            tips.SetToolTip(SaveBTN, "Export the video list to a CSV file.\nDropdown: export only the checked videos.");
             tips.SetToolTip(expandBTN, "Show/hide the browser panel (guide, TikTok login, download progress)");
         }
 
@@ -150,6 +167,7 @@ namespace TikTok_Downloader
       <li>Enter a TikTok <b>username</b> (without the @) in the box on the left.</li>
       <li>Click <b>📺 Latest Videos</b> for what's visible, or <b>🎞 All Videos</b> to auto-scroll and load the entire profile.</li>
       <li>Click <b>Download</b> on a single row, or <b>📥 Download All</b> to save everything to a folder.</li>
+      <li>Or <b>tick the checkboxes</b> in the first column (click the ☑ header to toggle all) and use the dropdown arrow on <b>Download All</b> &rarr; <b>Download Selected</b> for just that batch. The <b>Save List</b> dropdown can export the checked rows too.</li>
       <li>Optional: check <b>Thumbnails</b> to also save a .jpg preview per video, and use <b>💾 Save List</b> to export a CSV.</li>
     </ol>
   </div>
@@ -321,13 +339,14 @@ namespace TikTok_Downloader
                 newRow.CreateCells(videoList);
 
                 // Fill columns
-                newRow.Cells[0].Value = videoID;
-                newRow.Cells[1].Value = videoDesc;
-                newRow.Cells[2].Value = videoStats;
-                newRow.Cells[3].Value = videoUrl;
+                newRow.Cells[ColCheck].Value = false;
+                newRow.Cells[ColID].Value = videoID;
+                newRow.Cells[ColDesc].Value = videoDesc;
+                newRow.Cells[ColViews].Value = videoStats;
+                newRow.Cells[ColUrl].Value = videoUrl;
 
                 var downloadButton = new DataGridViewButtonCell { Value = "Download" };
-                newRow.Cells[4] = downloadButton;
+                newRow.Cells[ColDownload] = downloadButton;
 
                 videoList.Rows.Add(newRow);
 
@@ -337,7 +356,7 @@ namespace TikTok_Downloader
                 statusTXT.Text = $"Processed {processedVideoCount} of {totalVideoCount}";
 
                 // Make URL cell clickable
-                var urlCell = newRow.Cells[3];
+                var urlCell = newRow.Cells[ColUrl];
                 urlCell.Style.ForeColor = Color.Blue;
                 urlCell.Style.Font = new Font(urlCell.InheritedStyle.Font, FontStyle.Underline);
                 urlCell.Tag = videoUrl;
@@ -360,10 +379,31 @@ namespace TikTok_Downloader
             LoadUserProfilePage("all");
         }
 
+        // Click the checkbox column header => toggle all checkboxes
+        private void videoList_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.ColumnIndex != ColCheck) return;
+            videoList.EndEdit();
+            bool checkAll = videoList.Rows.Cast<DataGridViewRow>()
+                .Any(r => !(r.Cells[ColCheck].Value is bool b && b));
+            foreach (DataGridViewRow row in videoList.Rows)
+                row.Cells[ColCheck].Value = checkAll;
+            statusTXT.Text = checkAll ? "All videos checked" : "All videos unchecked";
+        }
+
+        // Rows the user has ticked in the checkbox column
+        private List<DataGridViewRow> GetCheckedRows()
+        {
+            videoList.EndEdit();
+            return videoList.Rows.Cast<DataGridViewRow>()
+                .Where(r => r.Cells[ColCheck].Value is bool b && b)
+                .ToList();
+        }
+
         // Clicking a URL cell => open in default browser
         private void videoList_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.ColumnIndex == 3 && e.RowIndex >= 0)
+            if (e.ColumnIndex == ColUrl && e.RowIndex >= 0)
             {
                 var videoUrl = videoList.Rows[e.RowIndex].Cells[e.ColumnIndex].Value?.ToString();
                 if (!string.IsNullOrEmpty(videoUrl))
@@ -387,14 +427,14 @@ namespace TikTok_Downloader
         // Click download button
         private void videoList_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.ColumnIndex == 4 && e.RowIndex >= 0)
+            if (e.ColumnIndex == ColDownload && e.RowIndex >= 0)
             {
                 var videoUrl = videoList.Rows[e.RowIndex].Cells[e.ColumnIndex].Tag?.ToString();
                 if (!string.IsNullOrEmpty(videoUrl))
                 {
                     statusTXT.Text = "Downloading video...";
                     progressBar.Value = 0;
-                    DownloadTikTokVideoAsync(videoList.Rows[e.RowIndex].Cells[3].Value?.ToString(), e.RowIndex);
+                    DownloadTikTokVideoAsync(videoList.Rows[e.RowIndex].Cells[ColUrl].Value?.ToString(), e.RowIndex);
                 }
             }
         }
@@ -792,8 +832,8 @@ namespace TikTok_Downloader
             }
         }
 
-        // Bulk download
-        private async void DownloadAllTikTokVideosAsync()
+        // Bulk download of an arbitrary set of rows (all rows or checked rows)
+        private async void DownloadRowsAsync(List<DataGridViewRow> rows)
         {
             if (isDownloading)
             {
@@ -811,18 +851,18 @@ namespace TikTok_Downloader
                 isDownloading = true;
                 trayBalloonShown = false;
 
-                int totalVideos = videoList.Rows.Cast<DataGridViewRow>()
-                    .Count(r => !string.IsNullOrWhiteSpace(r.Cells[3].Value?.ToString()));
+                int totalVideos = rows
+                    .Count(r => !string.IsNullOrWhiteSpace(r.Cells[ColUrl].Value?.ToString()));
                 int currentVideo = 0;
 
                 try
                 {
-                    foreach (DataGridViewRow row in videoList.Rows)
+                    foreach (DataGridViewRow row in rows)
                     {
                         if (cancellationTokenSource.Token.IsCancellationRequested)
                             break;
 
-                        string tikTokVideoUrl = row.Cells[3].Value?.ToString();
+                        string tikTokVideoUrl = row.Cells[ColUrl].Value?.ToString();
                         if (string.IsNullOrWhiteSpace(tikTokVideoUrl))
                             continue;
 
@@ -909,21 +949,51 @@ namespace TikTok_Downloader
         // Click Download All button
         private void downloadAllBTN_Click(object sender, EventArgs e)
         {
-            DownloadAllTikTokVideosAsync();
+            DownloadRowsAsync(videoList.Rows.Cast<DataGridViewRow>().Where(r => !r.IsNewRow).ToList());
         }
 
-        // Export to CSV
+        // Download only the checked videos (split-button dropdown)
+        private void downloadSelectedToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var rows = GetCheckedRows();
+            if (rows.Count == 0)
+            {
+                MessageBox.Show("No videos are checked. Tick the boxes in the first column, then try again.", "Nothing Selected");
+                return;
+            }
+            DownloadRowsAsync(rows);
+        }
+
+        // Export full list to CSV
         private void button1_Click(object sender, EventArgs e)
         {
-            ExportToCsv(videoList);
+            ExportToCsv(false);
         }
 
-        private void ExportToCsv(DataGridView dataGridView)
+        // Export only the checked videos to CSV (split-button dropdown)
+        private void saveSelectedToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            ExportToCsv(true);
+        }
+
+        private void ExportToCsv(bool selectedOnly)
+        {
+            var rows = selectedOnly
+                ? GetCheckedRows()
+                : videoList.Rows.Cast<DataGridViewRow>().Where(r => !r.IsNewRow).ToList();
+
+            if (rows.Count == 0)
+            {
+                MessageBox.Show(selectedOnly
+                    ? "No videos are checked. Tick the boxes in the first column, then try again."
+                    : "The video list is empty.", "Nothing to Export");
+                return;
+            }
+
             var saveDialog = new SaveFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv",
-                FileName = "Tiktok_Videos_List.csv",
+                FileName = selectedOnly ? "Tiktok_Videos_Selected.csv" : "Tiktok_Videos_List.csv",
                 InitialDirectory = lastDownloadedFolderPath
             };
             if (saveDialog.ShowDialog() == DialogResult.OK)
@@ -936,42 +1006,31 @@ namespace TikTok_Downloader
                 {
                     using (var streamWriter = new StreamWriter(saveDialog.FileName))
                     {
-                        // Headers (skip download column)
-                        for (int i = 0; i < dataGridView.Columns.Count; i++)
+                        // Headers (skip checkbox and download-button columns)
+                        var headers = new List<string>();
+                        for (int i = 0; i < videoList.Columns.Count; i++)
                         {
-                            if (i != 4)
-                            {
-                                string columnHeaderText = dataGridView.Columns[i].HeaderText.Replace(",", "");
-                                streamWriter.Write(columnHeaderText);
-                                if (i < dataGridView.Columns.Count - 1)
-                                    streamWriter.Write(",");
-                            }
+                            if (i == ColCheck || i == ColDownload) continue;
+                            headers.Add(videoList.Columns[i].HeaderText.Replace(",", ""));
                         }
-                        streamWriter.WriteLine();
+                        streamWriter.WriteLine(string.Join(",", headers));
 
                         // Rows
-                        foreach (DataGridViewRow row in dataGridView.Rows)
+                        foreach (DataGridViewRow row in rows)
                         {
-                            if (!row.IsNewRow)
+                            var values = new List<string>();
+                            for (int i = 0; i < row.Cells.Count; i++)
                             {
-                                for (int i = 0; i < row.Cells.Count; i++)
-                                {
-                                    if (i != 4)
-                                    {
-                                        string cellValue = row.Cells[i].FormattedValue.ToString().Replace(",", "");
-                                        // leading ' to preserve IDs with leading zeros
-                                        if (i == 0) streamWriter.Write("'");
-                                        streamWriter.Write(cellValue);
-                                        if (i < row.Cells.Count - 1)
-                                            streamWriter.Write(",");
-                                    }
-                                }
-                                streamWriter.WriteLine();
-                                progressBar.Value = row.Cells.Count;
+                                if (i == ColCheck || i == ColDownload) continue;
+                                string cellValue = row.Cells[i].FormattedValue?.ToString().Replace(",", "") ?? "";
+                                // leading ' to preserve IDs with leading zeros
+                                if (i == ColID) cellValue = "'" + cellValue;
+                                values.Add(cellValue);
                             }
+                            streamWriter.WriteLine(string.Join(",", values));
                         }
                     }
-                    MessageBox.Show($"Data exported to {saveDialog.FileName}", "Export Complete");
+                    MessageBox.Show($"Exported {rows.Count} video(s) to {saveDialog.FileName}", "Export Complete");
                     progressBar.Value = 100;
                     statusTXT.Text = $"Export complete: {saveDialog.FileName}";
                 }

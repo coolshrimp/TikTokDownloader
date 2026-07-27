@@ -18,13 +18,18 @@ namespace TikTok_Downloader
         private ProgressBar progressBar;
         private Label statusTXT;
         private Button expandBTN;
+        private DataGridViewCheckBoxColumn ColumnCheck;
         private DataGridViewTextBoxColumn Column5;
         private DataGridViewTextBoxColumn Column1;
         private DataGridViewTextBoxColumn Column4;
         private DataGridViewTextBoxColumn Column2;
         private DataGridViewButtonColumn Column3;
-        private Button downloadAllBTN;
-        private Button SaveBTN;
+        private wyDay.Controls.SplitButton downloadAllBTN;
+        private wyDay.Controls.SplitButton SaveBTN;
+        private ContextMenuStrip contextMenuStripDownload;
+        private ToolStripMenuItem downloadSelectedToolStripMenuItem;
+        private ContextMenuStrip contextMenuStripSave;
+        private ToolStripMenuItem saveSelectedToolStripMenuItem;
         private Button openFolderBTN;
         private Label label2;
         private Button stopBTN;
@@ -61,6 +66,7 @@ namespace TikTok_Downloader
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.userTXT = new System.Windows.Forms.TextBox();
             this.videoList = new System.Windows.Forms.DataGridView();
+            this.ColumnCheck = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             this.Column5 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -70,8 +76,12 @@ namespace TikTok_Downloader
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.statusTXT = new System.Windows.Forms.Label();
             this.expandBTN = new System.Windows.Forms.Button();
-            this.downloadAllBTN = new System.Windows.Forms.Button();
-            this.SaveBTN = new System.Windows.Forms.Button();
+            this.downloadAllBTN = new wyDay.Controls.SplitButton();
+            this.SaveBTN = new wyDay.Controls.SplitButton();
+            this.contextMenuStripDownload = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.downloadSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenuStripSave = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.saveSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFolderBTN = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.stopBTN = new System.Windows.Forms.Button();
@@ -108,6 +118,7 @@ namespace TikTok_Downloader
             this.videoList.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.videoList.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.videoList.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.ColumnCheck,
             this.Column5,
             this.Column1,
             this.Column4,
@@ -119,9 +130,18 @@ namespace TikTok_Downloader
             this.videoList.TabIndex = 2;
             this.videoList.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.videoList_CellClick);
             this.videoList.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.videoList_CellContentClick);
-            // 
+            //
+            // ColumnCheck
+            //
+            this.ColumnCheck.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
+            this.ColumnCheck.HeaderText = "☑";
+            this.ColumnCheck.Name = "ColumnCheck";
+            this.ColumnCheck.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.ColumnCheck.ToolTipText = "Check videos to download or export as a batch. Click the header to toggle all.";
+            this.ColumnCheck.Width = 34;
+            //
             // Column5
-            // 
+            //
             this.Column5.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.DisplayedCells;
             this.Column5.HeaderText = "ID";
             this.Column5.Name = "Column5";
@@ -194,6 +214,8 @@ namespace TikTok_Downloader
             // 
             // downloadAllBTN
             // 
+            this.downloadAllBTN.ContextMenuStrip = this.contextMenuStripDownload;
+            this.downloadAllBTN.SplitMenuStrip = this.contextMenuStripDownload;
             this.downloadAllBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
             this.downloadAllBTN.Location = new System.Drawing.Point(251, 43);
             this.downloadAllBTN.Name = "downloadAllBTN";
@@ -205,6 +227,8 @@ namespace TikTok_Downloader
             // 
             // SaveBTN
             // 
+            this.SaveBTN.ContextMenuStrip = this.contextMenuStripSave;
+            this.SaveBTN.SplitMenuStrip = this.contextMenuStripSave;
             this.SaveBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
             this.SaveBTN.Location = new System.Drawing.Point(622, 42);
             this.SaveBTN.Name = "SaveBTN";
@@ -313,9 +337,37 @@ namespace TikTok_Downloader
             this.favoritedVideosToolStripMenuItem.Size = new System.Drawing.Size(174, 22);
             this.favoritedVideosToolStripMenuItem.Text = "⭐ Favorited Videos";
             this.favoritedVideosToolStripMenuItem.Click += new System.EventHandler(this.favoritedVideosToolStripMenuItem_Click);
-            // 
+            //
+            // contextMenuStripDownload
+            //
+            this.contextMenuStripDownload.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.downloadSelectedToolStripMenuItem});
+            this.contextMenuStripDownload.Name = "contextMenuStripDownload";
+            this.contextMenuStripDownload.Size = new System.Drawing.Size(210, 26);
+            //
+            // downloadSelectedToolStripMenuItem
+            //
+            this.downloadSelectedToolStripMenuItem.Name = "downloadSelectedToolStripMenuItem";
+            this.downloadSelectedToolStripMenuItem.Size = new System.Drawing.Size(209, 22);
+            this.downloadSelectedToolStripMenuItem.Text = "📥 Download Selected ☑";
+            this.downloadSelectedToolStripMenuItem.Click += new System.EventHandler(this.downloadSelectedToolStripMenuItem_Click);
+            //
+            // contextMenuStripSave
+            //
+            this.contextMenuStripSave.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.saveSelectedToolStripMenuItem});
+            this.contextMenuStripSave.Name = "contextMenuStripSave";
+            this.contextMenuStripSave.Size = new System.Drawing.Size(200, 26);
+            //
+            // saveSelectedToolStripMenuItem
+            //
+            this.saveSelectedToolStripMenuItem.Name = "saveSelectedToolStripMenuItem";
+            this.saveSelectedToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
+            this.saveSelectedToolStripMenuItem.Text = "💾 Save Selected ☑";
+            this.saveSelectedToolStripMenuItem.Click += new System.EventHandler(this.saveSelectedToolStripMenuItem_Click);
+            //
             // contextMenuStripAllVideos
-            // 
+            //
             this.contextMenuStripAllVideos.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.allRepostsToolStripMenuItem,
             this.allLikedToolStripMenuItem,

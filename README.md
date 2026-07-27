@@ -10,6 +10,7 @@ TikTok Downloader is a Windows desktop utility for bulk or single-video download
 
 - **Load User Videos**: Enter a TikTok username and instantly see their posted content.
 - **Batch or Single Download**: Download all videos in bulk or pick individual videos to save.
+- **Checkbox Selection**: Tick any videos in the list (click the ☑ header to toggle all) and download or export just that batch via the dropdown on **Download All** / **Save List**.
 - **Native TikTok Downloads**: Grabs the direct video URL straight from TikTok's own page data (the same source as TikTok's built-in download button) — fast and reliable.
 - **SnapTik Fallback**: If the direct TikTok download is unavailable (region-locked, download disabled, or rate-limited), the app automatically falls back to [SnapTik](https://snaptik.app).
 - **Auto Scroll**: Automatically scroll to the bottom of a user's TikTok page to load all content.
@@ -46,9 +47,10 @@ TikTok Downloader is a Windows desktop utility for bulk or single-video download
 4. **Download Videos**
    - **Single Download**: Click the **Download** button in the row you want.
    - **Download All**: Use the "Download All" button to save every video in the list to a selected folder. Already-downloaded videos are skipped, and rows turn green on success (red if a video could not be retrieved).
+   - **Download Selected**: Tick the checkboxes in the first column (any order — click the ☑ header to check/uncheck all), then use the dropdown arrow on **Download All** → **Download Selected**.
 
 5. **Optional CSV Export**
-   - Use the "Save List" button to export the entire video list (IDs, descriptions, stats, URLs) to a CSV file.
+   - Use the "Save List" button to export the entire video list (IDs, descriptions, stats, URLs) to a CSV file, or its dropdown → **Save Selected** for just the checked rows.
 
 ---
 
@@ -86,6 +88,7 @@ The status bar always shows which method was used.
 - **Added**: System tray icon with live download status ("Downloading 20/300"), show/hide, open-folder, stop, and exit actions. Minimizing hides the window to the tray while downloads continue.
 - **Added**: Built-in "How to Use" guide shown in the browser panel (also available from the tray menu), plus tooltips on all controls.
 - **Changed**: The app now starts compact with the browser panel hidden; first launch starts expanded with the guide visible.
+- **Added**: Checkbox column for batch selection — download or CSV-export only the checked videos via new split-button dropdowns on Download All and Save List; click the ☑ header to toggle all.
 - **Changed**: SnapTik is now an automatic fallback instead of the primary downloader.
 - **Fixed**: SnapTik link submission (the URL was never registered by SnapTik's page, so downloads silently failed).
 - **Fixed**: App no longer freezes when a page fails to load — navigation now has a 30-second timeout.
