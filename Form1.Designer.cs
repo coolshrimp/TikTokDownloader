@@ -257,8 +257,10 @@ namespace TikTok_Downloader
             // label2
             // 
             this.label2.BackColor = System.Drawing.Color.Transparent;
+            this.label2.Cursor = System.Windows.Forms.Cursors.Hand;
             this.label2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Underline);
+            this.label2.ForeColor = System.Drawing.Color.RoyalBlue;
             this.label2.Location = new System.Drawing.Point(1175, 940);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(236, 27);
