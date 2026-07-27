@@ -18,8 +18,27 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Restore and build Release
-        run: msbuild "TikTok Downloader.csproj" /t:Restore,Build /p:Configuration=Release /v:m
+      # Restore and build MUST be separate MSBuild invocations: the restore
+      # writes obj\*.nuget.g.props/.targets (which import Fody and define
+      # NuGetPackageRoot), and a combined /t:Restore,Build evaluates the
+      # project before those files exist - producing an exe with nothing
+      # embedded that silently fails to launch.
+      - name: Restore
+        run: msbuild "TikTok Downloader.csproj" /t:Restore /p:Configuration=Release /v:m
+
+      - name: Build Release
+        run: msbuild "TikTok Downloader.csproj" /t:Build /p:Configuration=Release /v:m
+
+      - name: Verify single-exe embedding
+        shell: powershell
+        run: |
+          $bytes = [IO.File]::ReadAllBytes("bin\Release\TikTok Downloader.exe")
+          $asm = [Reflection.Assembly]::Load($bytes)
+          $names = $asm.GetManifestResourceNames()
+          Write-Host "Embedded resources:`n$($names -join "`n")"
+          if (-not ($names | Where-Object { $_ -like 'costura.*' })) { throw "Costura resources missing - Fody did not weave." }
+          if ($names -notcontains 'WebView2Loader.x64.dll') { throw "Native WebView2Loader resource missing." }
+          if ((Get-Item "bin\Release\TikTok Downloader.exe").Length -lt 700KB) { throw "Exe suspiciously small - dependencies not embedded." }
 
       - name: Stage artifact
         run: Copy-Item "bin\Release\TikTok Downloader.exe" "TikTok-Downloader-${{ github.ref_name }}.exe"
