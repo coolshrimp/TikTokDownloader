@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore and build Release
+        run: msbuild "TikTok Downloader.csproj" /t:Restore,Build /p:Configuration=Release /v:m
+
+      - name: Stage artifact
+        run: Copy-Item "bin\Release\TikTok Downloader.exe" "TikTok-Downloader-${{ github.ref_name }}.exe"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: TikTok Downloader ${{ github.ref_name }}
+          generate_release_notes: true
+          files: TikTok-Downloader-*.exe

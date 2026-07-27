@@ -2,7 +2,13 @@
 
 TikTok Downloader is a Windows desktop utility for bulk or single-video downloads from TikTok user profiles, liked videos, reposts, and favorites. It provides a friendly GUI with **auto-scroll** to load a user's entire feed, parses the video URLs, and downloads them — now **directly from TikTok** with SnapTik as an automatic fallback.
 
-![Main Interface Screenshot](./screenshot.png)
+![Main Interface Screenshot](./screenshots/Main.jpg)
+
+---
+
+## Download
+
+Grab the latest **single-file EXE** from the [Releases page](../../releases/latest) — no installer, no loose DLLs. Just make sure the requirements below are present (they ship with Windows 10/11).
 
 ---
 
@@ -33,6 +39,10 @@ TikTok Downloader is a Windows desktop utility for bulk or single-video download
 ---
 
 ## Usage
+
+A built-in **How to Use guide** opens over the list on every launch (toggle it anytime with the ❓ button, or from the tray menu):
+
+![Built-in Guide](./screenshots/Guide.jpg)
 
 1. **Enter TikTok Username**
    - Type the username in the text field (e.g. `username` without the `@`).
