@@ -61,8 +61,8 @@ namespace TikTok_Downloader
             public bool NeedsTikTokSession; // true when the URL requires TikTok cookies
         }
 
-        private readonly Size _size1 = new Size(745, 1018);
-        private readonly Size _size2 = new Size(1770, 1018);
+        private readonly Size _size1 = new Size(810, 1018);
+        private readonly Size _size2 = new Size(1835, 1018);
         private bool _isSize1 = true;
 
         public Form1()

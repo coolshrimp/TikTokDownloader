@@ -111,7 +111,7 @@ namespace TikTok_Downloader
             this.userTXT.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
             this.userTXT.Location = new System.Drawing.Point(227, 12);
             this.userTXT.Name = "userTXT";
-            this.userTXT.Size = new System.Drawing.Size(402, 23);
+            this.userTXT.Size = new System.Drawing.Size(440, 23);
             this.userTXT.TabIndex = 1;
             this.userTXT.TextChanged += new System.EventHandler(this.userTXT_TextChanged);
             // 
@@ -133,7 +133,7 @@ namespace TikTok_Downloader
             this.Column3});
             this.videoList.Location = new System.Drawing.Point(12, 81);
             this.videoList.Name = "videoList";
-            this.videoList.Size = new System.Drawing.Size(708, 833);
+            this.videoList.Size = new System.Drawing.Size(773, 833);
             this.videoList.TabIndex = 2;
             this.videoList.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.videoList_CellClick);
             this.videoList.CellContentClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.videoList_CellContentClick);
@@ -203,7 +203,7 @@ namespace TikTok_Downloader
             // 
             this.progressBar.Location = new System.Drawing.Point(67, 954);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(599, 13);
+            this.progressBar.Size = new System.Drawing.Size(660, 13);
             this.progressBar.TabIndex = 6;
             // 
             // statusTXT
@@ -213,7 +213,7 @@ namespace TikTok_Downloader
             this.statusTXT.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.statusTXT.Location = new System.Drawing.Point(78, 924);
             this.statusTXT.Name = "statusTXT";
-            this.statusTXT.Size = new System.Drawing.Size(577, 27);
+            this.statusTXT.Size = new System.Drawing.Size(640, 27);
             this.statusTXT.TabIndex = 7;
             this.statusTXT.Text = "----";
             this.statusTXT.TextAlign = System.Drawing.ContentAlignment.TopCenter;
@@ -221,7 +221,7 @@ namespace TikTok_Downloader
             // expandBTN
             // 
             this.expandBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.expandBTN.Location = new System.Drawing.Point(635, 8);
+            this.expandBTN.Location = new System.Drawing.Point(700, 8);
             this.expandBTN.Name = "expandBTN";
             this.expandBTN.Size = new System.Drawing.Size(85, 31);
             this.expandBTN.TabIndex = 8;
@@ -236,7 +236,7 @@ namespace TikTok_Downloader
             this.downloadAllBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
             this.downloadAllBTN.Location = new System.Drawing.Point(251, 43);
             this.downloadAllBTN.Name = "downloadAllBTN";
-            this.downloadAllBTN.Size = new System.Drawing.Size(118, 31);
+            this.downloadAllBTN.Size = new System.Drawing.Size(140, 31);
             this.downloadAllBTN.TabIndex = 9;
             this.downloadAllBTN.Text = "📥 Download All";
             this.downloadAllBTN.UseVisualStyleBackColor = true;
@@ -247,9 +247,9 @@ namespace TikTok_Downloader
             this.SaveBTN.ContextMenuStrip = this.contextMenuStripSave;
             this.SaveBTN.SplitMenuStrip = this.contextMenuStripSave;
             this.SaveBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.SaveBTN.Location = new System.Drawing.Point(622, 42);
+            this.SaveBTN.Location = new System.Drawing.Point(644, 42);
             this.SaveBTN.Name = "SaveBTN";
-            this.SaveBTN.Size = new System.Drawing.Size(98, 32);
+            this.SaveBTN.Size = new System.Drawing.Size(120, 32);
             this.SaveBTN.TabIndex = 10;
             this.SaveBTN.Text = "💾 Save List";
             this.SaveBTN.UseVisualStyleBackColor = true;
@@ -258,7 +258,7 @@ namespace TikTok_Downloader
             // openFolderBTN
             // 
             this.openFolderBTN.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F);
-            this.openFolderBTN.Location = new System.Drawing.Point(539, 42);
+            this.openFolderBTN.Location = new System.Drawing.Point(561, 42);
             this.openFolderBTN.Name = "openFolderBTN";
             this.openFolderBTN.Size = new System.Drawing.Size(77, 33);
             this.openFolderBTN.TabIndex = 11;
@@ -273,7 +273,7 @@ namespace TikTok_Downloader
             this.label2.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Underline);
             this.label2.ForeColor = System.Drawing.Color.RoyalBlue;
-            this.label2.Location = new System.Drawing.Point(1175, 940);
+            this.label2.Location = new System.Drawing.Point(1240, 940);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(236, 27);
             this.label2.TabIndex = 12;
@@ -284,7 +284,7 @@ namespace TikTok_Downloader
             // stopBTN
             // 
             this.stopBTN.Enabled = false;
-            this.stopBTN.Location = new System.Drawing.Point(467, 42);
+            this.stopBTN.Location = new System.Drawing.Point(489, 42);
             this.stopBTN.Name = "stopBTN";
             this.stopBTN.Size = new System.Drawing.Size(66, 32);
             this.stopBTN.TabIndex = 13;
@@ -295,7 +295,7 @@ namespace TikTok_Downloader
             // thumbCHK
             // 
             this.thumbCHK.AutoSize = true;
-            this.thumbCHK.Location = new System.Drawing.Point(375, 51);
+            this.thumbCHK.Location = new System.Drawing.Point(397, 51);
             this.thumbCHK.Name = "thumbCHK";
             this.thumbCHK.Size = new System.Drawing.Size(86, 17);
             this.thumbCHK.TabIndex = 14;
@@ -307,7 +307,7 @@ namespace TikTok_Downloader
             this.webBrowser.AllowExternalDrop = true;
             this.webBrowser.CreationProperties = null;
             this.webBrowser.DefaultBackgroundColor = System.Drawing.Color.White;
-            this.webBrowser.Location = new System.Drawing.Point(737, 13);
+            this.webBrowser.Location = new System.Drawing.Point(802, 13);
             this.webBrowser.Name = "webBrowser";
             this.webBrowser.Size = new System.Drawing.Size(1005, 901);
             this.webBrowser.TabIndex = 3;
@@ -432,7 +432,7 @@ namespace TikTok_Downloader
             // 
             this.DonateBTN.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(42)))), ((int)(((byte)(84)))));
             this.DonateBTN.Font = new System.Drawing.Font("Arial", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.DonateBTN.Location = new System.Drawing.Point(1632, 924);
+            this.DonateBTN.Location = new System.Drawing.Point(1697, 924);
             this.DonateBTN.Name = "DonateBTN";
             this.DonateBTN.Size = new System.Drawing.Size(110, 43);
             this.DonateBTN.TabIndex = 19;
@@ -442,7 +442,7 @@ namespace TikTok_Downloader
             // 
             // Form1
             // 
-            this.ClientSize = new System.Drawing.Size(1754, 979);
+            this.ClientSize = new System.Drawing.Size(1819, 979);
             this.Controls.Add(this.DonateBTN);
             this.Controls.Add(this.allVideoDDB);
             this.Controls.Add(this.getVideosDDB);
