@@ -115,8 +115,12 @@ namespace TikTok_Downloader
             // 
             // videoList
             // 
+            this.videoList.AllowUserToAddRows = false;
+            this.videoList.AllowUserToDeleteRows = false;
+            this.videoList.AllowUserToResizeRows = false;
             this.videoList.AutoSizeColumnsMode = System.Windows.Forms.DataGridViewAutoSizeColumnsMode.Fill;
             this.videoList.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.videoList.RowHeadersVisible = false;
             this.videoList.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.ColumnCheck,
             this.Column5,
