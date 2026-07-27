@@ -166,11 +166,12 @@ namespace TikTok_Downloader
             // 
             // Column3
             // 
-            this.Column3.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.AllCells;
+            this.Column3.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
             this.Column3.HeaderText = "Download";
             this.Column3.Name = "Column3";
+            this.Column3.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             this.Column3.Text = "Download Now";
-            this.Column3.Width = 61;
+            this.Column3.Width = 80;
             // 
             // label1
             // 
