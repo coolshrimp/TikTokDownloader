@@ -23,6 +23,7 @@ namespace TikTok_Downloader
         private DataGridViewTextBoxColumn Column1;
         private DataGridViewTextBoxColumn Column4;
         private DataGridViewTextBoxColumn Column2;
+        private DataGridViewButtonColumn ColumnPreview;
         private DataGridViewButtonColumn Column3;
         private wyDay.Controls.SplitButton downloadAllBTN;
         private wyDay.Controls.SplitButton SaveBTN;
@@ -71,6 +72,7 @@ namespace TikTok_Downloader
             this.Column1 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column4 = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column2 = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.ColumnPreview = new System.Windows.Forms.DataGridViewButtonColumn();
             this.Column3 = new System.Windows.Forms.DataGridViewButtonColumn();
             this.label1 = new System.Windows.Forms.Label();
             this.progressBar = new System.Windows.Forms.ProgressBar();
@@ -127,6 +129,7 @@ namespace TikTok_Downloader
             this.Column1,
             this.Column4,
             this.Column2,
+            this.ColumnPreview,
             this.Column3});
             this.videoList.Location = new System.Drawing.Point(12, 81);
             this.videoList.Name = "videoList";
@@ -167,9 +170,18 @@ namespace TikTok_Downloader
             // 
             this.Column2.HeaderText = "Video URL";
             this.Column2.Name = "Column2";
-            // 
+            //
+            // ColumnPreview
+            //
+            this.ColumnPreview.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
+            this.ColumnPreview.HeaderText = "Preview";
+            this.ColumnPreview.Name = "ColumnPreview";
+            this.ColumnPreview.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            this.ColumnPreview.ToolTipText = "Open this video in the side panel to preview it before downloading";
+            this.ColumnPreview.Width = 55;
+            //
             // Column3
-            // 
+            //
             this.Column3.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
             this.Column3.HeaderText = "Download";
             this.Column3.Name = "Column3";

@@ -28,7 +28,8 @@ namespace TikTok_Downloader
         private const int ColDesc = 2;
         private const int ColViews = 3;
         private const int ColUrl = 4;
-        private const int ColDownload = 5;
+        private const int ColPreview = 5;
+        private const int ColDownload = 6;
 
         // Tray icon / background-download support
         private NotifyIcon trayIcon;
@@ -345,6 +346,9 @@ namespace TikTok_Downloader
                 newRow.Cells[ColViews].Value = videoStats;
                 newRow.Cells[ColUrl].Value = videoUrl;
 
+                var previewButton = new DataGridViewButtonCell { Value = "▶" };
+                newRow.Cells[ColPreview] = previewButton;
+
                 var downloadButton = new DataGridViewButtonCell { Value = "Download" };
                 newRow.Cells[ColDownload] = downloadButton;
 
@@ -424,9 +428,33 @@ namespace TikTok_Downloader
             }
         }
 
+        // Preview a video in the side panel before downloading
+        private void PreviewVideo(string videoUrl)
+        {
+            if (webBrowser.CoreWebView2 == null || string.IsNullOrWhiteSpace(videoUrl)) return;
+            if (isDownloading)
+            {
+                statusTXT.Text = "Can't preview while a download is running (the browser panel is in use).";
+                return;
+            }
+            if (_isSize1)
+            {
+                _isSize1 = false;
+                this.Size = _size2;
+                expandBTN.Text = "Shrink ⮜";
+            }
+            statusTXT.Text = "Previewing video in side panel...";
+            webBrowser.CoreWebView2.Navigate(videoUrl);
+        }
+
         // Click download button
         private void videoList_CellClick(object sender, DataGridViewCellEventArgs e)
         {
+            if (e.ColumnIndex == ColPreview && e.RowIndex >= 0)
+            {
+                PreviewVideo(videoList.Rows[e.RowIndex].Cells[ColUrl].Value?.ToString());
+                return;
+            }
             if (e.ColumnIndex == ColDownload && e.RowIndex >= 0)
             {
                 var videoUrl = videoList.Rows[e.RowIndex].Cells[e.ColumnIndex].Tag?.ToString();
@@ -1010,7 +1038,7 @@ namespace TikTok_Downloader
                         var headers = new List<string>();
                         for (int i = 0; i < videoList.Columns.Count; i++)
                         {
-                            if (i == ColCheck || i == ColDownload) continue;
+                            if (i == ColCheck || i == ColPreview || i == ColDownload) continue;
                             headers.Add(videoList.Columns[i].HeaderText.Replace(",", ""));
                         }
                         streamWriter.WriteLine(string.Join(",", headers));
@@ -1021,7 +1049,7 @@ namespace TikTok_Downloader
                             var values = new List<string>();
                             for (int i = 0; i < row.Cells.Count; i++)
                             {
-                                if (i == ColCheck || i == ColDownload) continue;
+                                if (i == ColCheck || i == ColPreview || i == ColDownload) continue;
                                 string cellValue = row.Cells[i].FormattedValue?.ToString().Replace(",", "") ?? "";
                                 // leading ' to preserve IDs with leading zeros
                                 if (i == ColID) cellValue = "'" + cellValue;
