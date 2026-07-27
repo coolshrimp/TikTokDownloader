@@ -66,7 +66,7 @@ The status bar always shows which method was used.
 ## Building from Source
 
 1. Clone the repo and open `TikTok Downloader.sln` in Visual Studio 2019 or newer.
-2. Restore NuGet packages (`HtmlAgilityPack`, `Microsoft.Web.WebView2`).
+2. Restore NuGet packages (`HtmlAgilityPack`, `Microsoft.Web.WebView2`). The `SplitButton` control ships in `lib/`.
 3. Build — the project targets .NET Framework 4.8.
 
 ---

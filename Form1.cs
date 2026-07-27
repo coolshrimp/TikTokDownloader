@@ -100,11 +100,10 @@ namespace TikTok_Downloader
                 webBrowser.CoreWebView2.Settings.IsStatusBarEnabled = false;
             }
 
-            // Start compact (browser panel hidden). First run shows the
-            // how-to guide overlay over the list so new users see what to do.
+            // Start compact (browser panel hidden) with the how-to guide
+            // overlay over the list; it hides as soon as videos are loaded.
             this.Size = _size1;
-            if (string.IsNullOrWhiteSpace(userTXT.Text))
-                await ShowGuideOverlayAsync();
+            await ShowGuideOverlayAsync();
             statusTXT.Text = "Enter a username, then click Latest Videos or All Videos";
 
             Console.WriteLine("Form1_Load: Load event complete.");
@@ -258,6 +257,7 @@ namespace TikTok_Downloader
         {
             if (webBrowser.CoreWebView2 == null) return;
 
+            HideGuideOverlay();
             var targetUrl = "https://www.tiktok.com/@" + userTXT.Text;
             webBrowser.CoreWebView2.Navigate(targetUrl);
             statusTXT.Text = "Navigating to: " + targetUrl;
