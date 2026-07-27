@@ -1,0 +1,116 @@
+# TikTok Downloader
+
+TikTok Downloader is a Windows desktop utility for bulk or single-video downloads from TikTok user profiles, liked videos, reposts, and favorites. It provides a friendly GUI with **auto-scroll** to load a user's entire feed, parses the video URLs, and downloads them — now **directly from TikTok** with SnapTik as an automatic fallback.
+
+![Main Interface Screenshot](./screenshot.png)
+
+---
+
+## Features
+
+- **Load User Videos**: Enter a TikTok username and instantly see their posted content.
+- **Batch or Single Download**: Download all videos in bulk or pick individual videos to save.
+- **Native TikTok Downloads**: Grabs the direct video URL straight from TikTok's own page data (the same source as TikTok's built-in download button) — fast and reliable.
+- **SnapTik Fallback**: If the direct TikTok download is unavailable (region-locked, download disabled, or rate-limited), the app automatically falls back to [SnapTik](https://snaptik.app).
+- **Auto Scroll**: Automatically scroll to the bottom of a user's TikTok page to load all content.
+- **Likes / Favorites / Reposts**: Retrieve liked, favorited, or reposted videos (if you're logged in inside the embedded browser).
+- **CSV Export**: Export the collected video list to a CSV file.
+- **Progress Tracking**: Real-time status and progress for scraping and downloads.
+- **Thumbnail Option**: Download thumbnails alongside the videos for easy reference.
+
+---
+
+## Requirements
+
+- **Windows 10 or later**
+- **.NET Framework 4.8** (preinstalled on Windows 10/11)
+- **[WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)** (preinstalled on Windows 11; the Evergreen runtime installer covers Windows 10)
+- A stable internet connection
+
+---
+
+## Usage
+
+1. **Enter TikTok Username**
+   - Type the username in the text field (e.g. `username` without the `@`).
+
+2. **Choose Video Scope**
+   - Click **Latest Videos** to load visible posts without autoscroll.
+   - Click **All Videos** (or use the drop-down) to auto-scroll and load the entire feed (including reposts, liked, or favorited videos if you're logged in).
+
+3. **Load Videos**
+   - Wait for the progress bar to reach 100%. The grid will list each found video.
+
+4. **Download Videos**
+   - **Single Download**: Click the **Download** button in the row you want.
+   - **Download All**: Use the "Download All" button to save every video in the list to a selected folder. Already-downloaded videos are skipped, and rows turn green on success (red if a video could not be retrieved).
+
+5. **Optional CSV Export**
+   - Use the "Save List" button to export the entire video list (IDs, descriptions, stats, URLs) to a CSV file.
+
+---
+
+## How Downloads Work
+
+1. **TikTok direct (primary)** — the app opens the video page in the embedded WebView2 browser, reads the direct media URL from TikTok's page data, and downloads it using your browser session.
+2. **SnapTik (fallback)** — only if the direct method fails, the app submits the link to SnapTik and retrieves the download URL from there (typically a no-watermark version).
+
+The status bar always shows which method was used.
+
+---
+
+## Building from Source
+
+1. Clone the repo and open `TikTok Downloader.sln` in Visual Studio 2019 or newer.
+2. Restore NuGet packages (`HtmlAgilityPack`, `Microsoft.Web.WebView2`).
+3. Build — the project targets .NET Framework 4.8.
+
+---
+
+## Troubleshooting
+
+- **WebView2 Not Initialized**: Install the [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) or ensure it's up to date.
+- **No Videos Found**: Double-check the username spelling or ensure you have an active internet connection.
+- **Login-Required Tabs Not Working**: If you're not logged in to TikTok in the embedded browser, "liked" or "favorited" videos may not load.
+- **Downloads Fall Back to SnapTik Often**: Some videos have downloads disabled by the creator or are region-restricted; the fallback handles these automatically.
+- **Stuck or Slow**: Large accounts or slow internet might require more time. Check the progress bar or status for updates. Page loads now time out after 30 seconds instead of hanging.
+
+---
+
+## Version History
+
+### v6
+- **Added**: Native TikTok downloads — direct media URL pulled from TikTok's own page data, used as the primary method.
+- **Changed**: SnapTik is now an automatic fallback instead of the primary downloader.
+- **Fixed**: SnapTik link submission (the URL was never registered by SnapTik's page, so downloads silently failed).
+- **Fixed**: App no longer freezes when a page fails to load — navigation now has a 30-second timeout.
+- **Improved**: Failed videos are marked red in bulk downloads instead of being skipped silently.
+
+### v5
+- **Improved**: Stability of auto-scroll for large accounts.
+- **Optimized**: Performance for multi-video downloads.
+- **Added**: Reposts / Liked / Favorited content retrieval (logged in).
+
+### v4
+- Changed download host to SnapTik.
+- **Enhanced**: Improved SnapTik integration and progress tracking.
+- **Fixed**: Minor bug with CSV export not including stats properly.
+- **Added**: Thumbnail downloads (optional).
+
+### v3
+- **Initial Release**
+  - Load user videos (posted content).
+  - Single or all-video downloads.
+  - CSV export of the video list.
+  - Auto scroll to load more videos.
+
+---
+
+## Donate
+
+If you'd like to support the development of tools like this, consider a donation:
+[**Support Me**](https://links.coolshrimpmodz.com)
+
+---
+
+Enjoy downloading TikTok videos! If you find a bug or have suggestions, feel free to open an [issue](../../issues).

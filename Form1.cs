@@ -19,6 +19,31 @@ namespace TikTok_Downloader
         private CancellationTokenSource cancellationTokenSource;
         private string html;
         private string lastDownloadedFolderPath;
+        private bool isDownloading;
+
+        private const string FallbackUserAgent =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+        private static readonly HttpClient httpClient = CreateHttpClient();
+
+        private static HttpClient CreateHttpClient()
+        {
+            var handler = new HttpClientHandler
+            {
+                UseCookies = false, // we attach the WebView2 session cookies manually
+                AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+            };
+            return new HttpClient(handler) { Timeout = TimeSpan.FromMinutes(5) };
+        }
+
+        // Result of resolving a TikTok page to a direct video URL
+        private class VideoSource
+        {
+            public string VideoUrl;
+            public string ThumbUrl;
+            public string Method;          // "TikTok" or "SnapTik"
+            public bool NeedsTikTokSession; // true when the URL requires TikTok cookies
+        }
 
         private readonly Size _size1 = new Size(745, 1018);
         private readonly Size _size2 = new Size(1770, 1018);
@@ -51,17 +76,26 @@ namespace TikTok_Downloader
             Console.WriteLine("Form1_Load: Load event complete.");
         }
 
-        // Helper to wait for next page NavigationCompleted
-        private Task WaitForPageLoadAsync()
+        // Helper to wait for next page NavigationCompleted.
+        // Times out instead of hanging forever if navigation stalls (this was
+        // freezing the app when SnapTik/TikTok never finished loading).
+        private async Task<bool> WaitForPageLoadAsync(int timeoutMs = 30000)
         {
             var tcs = new TaskCompletionSource<bool>();
             void handler(object s, CoreWebView2NavigationCompletedEventArgs e)
             {
                 webBrowser.NavigationCompleted -= handler;
-                tcs.SetResult(true);
+                tcs.TrySetResult(true);
             }
             webBrowser.NavigationCompleted += handler;
-            return tcs.Task;
+
+            var finished = await Task.WhenAny(tcs.Task, Task.Delay(timeoutMs));
+            if (finished != tcs.Task)
+            {
+                webBrowser.NavigationCompleted -= handler;
+                return false;
+            }
+            return true;
         }
 
         // Retrieve HTML from WebView2
@@ -257,7 +291,6 @@ namespace TikTok_Downloader
                     statusTXT.Text = "Downloading video...";
                     progressBar.Value = 0;
                     DownloadTikTokVideoAsync(videoList.Rows[e.RowIndex].Cells[3].Value?.ToString(), e.RowIndex);
-                    progressBar.Value = 100;
                 }
             }
         }
@@ -270,6 +303,233 @@ namespace TikTok_Downloader
             expandBTN.Text = _isSize1 ? "Expand ⮞" : "Shrink ⮜";
         }
 
+        // ===== Video source resolution: native TikTok first, SnapTik fallback =====
+
+        // Escape a string for embedding inside a single-quoted JS literal
+        private static string EscapeJsString(string value)
+        {
+            return value.Replace("\\", "\\\\").Replace("'", "\\'");
+        }
+
+        // ExecuteScriptAsync returns a JSON-encoded value; unwrap it to a plain string
+        private static string UnwrapJsResult(string resultJson)
+        {
+            if (string.IsNullOrEmpty(resultJson) || resultJson == "null")
+                return "";
+            var s = resultJson;
+            if (s.StartsWith("\"") && s.EndsWith("\"") && s.Length > 1)
+                s = s.Substring(1, s.Length - 2);
+            return Regex.Unescape(s);
+        }
+
+        private string GetBrowserUserAgent()
+        {
+            try
+            {
+                var ua = webBrowser.CoreWebView2?.Settings?.UserAgent;
+                return string.IsNullOrWhiteSpace(ua) ? FallbackUserAgent : ua;
+            }
+            catch
+            {
+                return FallbackUserAgent;
+            }
+        }
+
+        private async Task<string> GetTikTokCookieHeaderAsync()
+        {
+            var cookies = await webBrowser.CoreWebView2.CookieManager.GetCookiesAsync("https://www.tiktok.com/");
+            return string.Join("; ", cookies.Select(c => c.Name + "=" + c.Value));
+        }
+
+        // Try native TikTok first, then fall back to SnapTik
+        private async Task<VideoSource> ResolveVideoSourceAsync(string tikTokVideoUrl, CancellationToken ct)
+        {
+            var native = await TryGetNativeVideoSourceAsync(tikTokVideoUrl, ct);
+            if (native != null) return native;
+            if (ct.IsCancellationRequested) return null;
+
+            statusTXT.Text = "TikTok direct download unavailable, trying SnapTik...";
+            return await TryGetSnapTikVideoSourceAsync(tikTokVideoUrl, ct);
+        }
+
+        // Reads the direct video URL from TikTok's own page data
+        // (same URL TikTok's built-in download button uses).
+        private async Task<VideoSource> TryGetNativeVideoSourceAsync(string tikTokVideoUrl, CancellationToken ct)
+        {
+            try
+            {
+                statusTXT.Text = "Getting video directly from TikTok...";
+                webBrowser.CoreWebView2.Navigate(tikTokVideoUrl);
+                if (!await WaitForPageLoadAsync()) return null;
+                await Task.Delay(1500);
+
+                const string extractScript = @"
+                    (function() {
+                        try {
+                            var el = document.getElementById('__UNIVERSAL_DATA_FOR_REHYDRATION__');
+                            if (!el) return '';
+                            var data = JSON.parse(el.textContent);
+                            var scope = data['__DEFAULT_SCOPE__'] || {};
+                            var detail = scope['webapp.video-detail'];
+                            var item = detail && detail.itemInfo && detail.itemInfo.itemStruct;
+                            if (!item || !item.video) return '';
+                            var v = item.video.downloadAddr || item.video.playAddr || '';
+                            var t = item.video.cover || item.video.originCover || '';
+                            if (!v) {
+                                var vid = document.querySelector('video');
+                                if (vid && vid.src && vid.src.indexOf('blob:') !== 0) v = vid.src;
+                            }
+                            if (!v) return '';
+                            return encodeURIComponent(v) + '||' + encodeURIComponent(t);
+                        } catch (e) { return ''; }
+                    })()";
+
+                for (int i = 0; i < 10; i++)
+                {
+                    if (ct.IsCancellationRequested) return null;
+
+                    var result = UnwrapJsResult(await webBrowser.CoreWebView2.ExecuteScriptAsync(extractScript));
+                    if (result.Contains("||"))
+                    {
+                        var parts = result.Split(new[] { "||" }, StringSplitOptions.None);
+                        var videoUrl = Uri.UnescapeDataString(parts[0]);
+                        var thumbUrl = parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : "";
+                        if (!string.IsNullOrWhiteSpace(videoUrl))
+                        {
+                            return new VideoSource
+                            {
+                                VideoUrl = videoUrl,
+                                ThumbUrl = thumbUrl,
+                                Method = "TikTok",
+                                NeedsTikTokSession = true
+                            };
+                        }
+                    }
+                    await Task.Delay(1000);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Native TikTok extraction failed: " + ex.Message);
+            }
+            return null;
+        }
+
+        // SnapTik fallback. Sets the input through the native value setter and fires
+        // input/change events so SnapTik's reactive UI actually registers the URL
+        // (plain .value assignment was silently ignored, which broke downloads).
+        private async Task<VideoSource> TryGetSnapTikVideoSourceAsync(string tikTokVideoUrl, CancellationToken ct)
+        {
+            try
+            {
+                statusTXT.Text = "Navigating to SnapTik...";
+                webBrowser.CoreWebView2.Navigate("https://snaptik.app");
+                if (!await WaitForPageLoadAsync())
+                {
+                    statusTXT.Text = "SnapTik did not load.";
+                    return null;
+                }
+                await Task.Delay(2000);
+                if (ct.IsCancellationRequested) return null;
+
+                string fillScript = @"
+                    (function() {
+                        var input = document.getElementById('url')
+                            || document.querySelector('input[name=""url""]')
+                            || document.querySelector('form input[type=""url""], form input[type=""text""]');
+                        if (!input) return 'no-input';
+                        var setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        setter.call(input, '" + EscapeJsString(tikTokVideoUrl) + @"');
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        var btn = (input.form && input.form.querySelector('button[type=""submit""]'))
+                            || document.querySelector('button[type=""submit""]');
+                        if (btn) { btn.click(); return 'submitted'; }
+                        if (input.form) { input.form.submit(); return 'form-submitted'; }
+                        return 'no-button';
+                    })()";
+                var fillResult = UnwrapJsResult(await webBrowser.CoreWebView2.ExecuteScriptAsync(fillScript));
+                if (fillResult == "no-input")
+                {
+                    statusTXT.Text = "SnapTik page layout not recognized.";
+                    return null;
+                }
+                await Task.Delay(2000);
+
+                const string linkSelector =
+                    ".video-links a.button.download-file, a.button.download-file, " +
+                    "a[data-event*='download'], .download-box a[href], .video-links a[href]";
+
+                bool foundLink = false;
+                for (int i = 0; i < 30; i++)
+                {
+                    if (ct.IsCancellationRequested) return null;
+                    var check = await webBrowser.CoreWebView2.ExecuteScriptAsync(
+                        $"document.querySelector(\"{linkSelector}\") !== null");
+                    if (check.Contains("true")) { foundLink = true; break; }
+                    await Task.Delay(1000);
+                }
+                if (!foundLink)
+                {
+                    statusTXT.Text = "Could not find SnapTik download link.";
+                    return null;
+                }
+
+                var rawUrl = UnwrapJsResult(await webBrowser.CoreWebView2.ExecuteScriptAsync(
+                    $"document.querySelector(\"{linkSelector}\").getAttribute('href')"));
+                var thumbUrl = UnwrapJsResult(await webBrowser.CoreWebView2.ExecuteScriptAsync(
+                    "document.querySelector('img#thumbnail') ? document.querySelector('img#thumbnail').getAttribute('src') : ''"));
+
+                if (string.IsNullOrWhiteSpace(rawUrl) || rawUrl == "null")
+                {
+                    statusTXT.Text = "SnapTik returned no video URL.";
+                    return null;
+                }
+
+                return new VideoSource
+                {
+                    VideoUrl = rawUrl,
+                    ThumbUrl = thumbUrl,
+                    Method = "SnapTik",
+                    NeedsTikTokSession = false
+                };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("SnapTik extraction failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        // Download any file, attaching the TikTok browser session (cookies/UA/referer) when required
+        private async Task<bool> DownloadFileAsync(string url, string filePath, bool useTikTokSession)
+        {
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                request.Headers.TryAddWithoutValidation("User-Agent", GetBrowserUserAgent());
+                if (useTikTokSession)
+                {
+                    request.Headers.TryAddWithoutValidation("Cookie", await GetTikTokCookieHeaderAsync());
+                    request.Headers.TryAddWithoutValidation("Referer", "https://www.tiktok.com/");
+                }
+
+                using (var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                {
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"Download failed, HTTP {(int)response.StatusCode} for {url}");
+                        return false;
+                    }
+                    using (var inStream = await response.Content.ReadAsStreamAsync())
+                    using (var outStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await inStream.CopyToAsync(outStream);
+                    }
+                    return true;
+                }
+            }
+        }
+
         // Single-video download logic
         private async void DownloadTikTokVideoAsync(string tikTokVideoUrl, int videoURLrow)
         {
@@ -279,89 +539,56 @@ namespace TikTok_Downloader
                 progressBar.Value = 0;
                 return;
             }
-
-            // Extract ID
-            string videoID = "TikTokVideo";
-            var idMatch = Regex.Match(tikTokVideoUrl, @"/(?:video|v)/(\d+)");
-            if (idMatch.Success) videoID = idMatch.Groups[1].Value;
-
-            // Navigate SnapTik
-            statusTXT.Text = "Navigating to SnapTik...";
-            webBrowser.CoreWebView2.Navigate("https://snaptik.app");
-            await WaitForPageLoadAsync();
-            await Task.Delay(2000);
-
-            // Fill input & submit
-            await webBrowser.CoreWebView2.ExecuteScriptAsync($"document.getElementById('url').value = '{tikTokVideoUrl}'");
-            await webBrowser.CoreWebView2.ExecuteScriptAsync("document.getElementById('url').click();");
-            await webBrowser.CoreWebView2.ExecuteScriptAsync("document.querySelector('button[type=\"submit\"]').click()");
-            await Task.Delay(2000);
-
-            // Wait for link
-            bool foundLink = false;
-            for (int i = 0; i < 30; i++)
+            if (isDownloading)
             {
-                var checkSelector = await webBrowser.CoreWebView2.ExecuteScriptAsync(
-                    "document.querySelector('.video-links a.button.download-file') !== null"
-                );
-                if (checkSelector.Contains("true"))
-                {
-                    foundLink = true;
-                    break;
-                }
-                await Task.Delay(1000);
-            }
-            if (!foundLink)
-            {
-                statusTXT.Text = "Could not find SnapTik download link.";
+                statusTXT.Text = "A download is already in progress.";
                 return;
             }
 
-            // Extract final video link
-            var hrefJson = await webBrowser.CoreWebView2.ExecuteScriptAsync(
-               "document.querySelector('.video-links a.button.download-file').getAttribute('href')"
-            );
-            string rawUrl = Regex.Unescape(hrefJson);
-            if (rawUrl.StartsWith("\"") && rawUrl.EndsWith("\"") && rawUrl.Length > 1)
-                rawUrl = rawUrl.Substring(1, rawUrl.Length - 2);
-
-            // Extract thumbnail
-            var thumbJson = await webBrowser.CoreWebView2.ExecuteScriptAsync(
-               "document.querySelector('img#thumbnail') ? document.querySelector('img#thumbnail').getAttribute('src') : ''"
-            );
-            string thumbUrl = Regex.Unescape(thumbJson);
-            if (thumbUrl.StartsWith("\"") && thumbUrl.EndsWith("\"") && thumbUrl.Length > 1)
-                thumbUrl = thumbUrl.Substring(1, thumbUrl.Length - 2);
-
-            // Prompt for final name
-            SaveFileDialog sfd = new SaveFileDialog
+            isDownloading = true;
+            try
             {
-                Filter = "MP4 Files|*.mp4",
-                FileName = $"{videoID}.mp4",
-                InitialDirectory = lastDownloadedFolderPath
-            };
-            if (sfd.ShowDialog() == DialogResult.OK)
-            {
+                // Extract ID
+                string videoID = "TikTokVideo";
+                var idMatch = Regex.Match(tikTokVideoUrl, @"/(?:video|v)/(\d+)");
+                if (idMatch.Success) videoID = idMatch.Groups[1].Value;
+
+                progressBar.Value = 10;
+                var source = await ResolveVideoSourceAsync(tikTokVideoUrl, CancellationToken.None);
+                if (source == null)
+                {
+                    statusTXT.Text = "Could not get a download link (TikTok and SnapTik both failed).";
+                    progressBar.Value = 0;
+                    return;
+                }
+                progressBar.Value = 50;
+
+                // Prompt for final name
+                SaveFileDialog sfd = new SaveFileDialog
+                {
+                    Filter = "MP4 Files|*.mp4",
+                    FileName = $"{videoID}.mp4",
+                    InitialDirectory = lastDownloadedFolderPath
+                };
+                if (sfd.ShowDialog() != DialogResult.OK)
+                {
+                    progressBar.Value = 0;
+                    return;
+                }
+
                 lastDownloadedFolderPath = Path.GetDirectoryName(sfd.FileName);
+                statusTXT.Text = $"Downloading video via {source.Method}...";
                 try
                 {
-                    using (HttpClient client = new HttpClient())
+                    if (await DownloadFileAsync(source.VideoUrl, sfd.FileName, source.NeedsTikTokSession))
                     {
-                        var resp = await client.GetAsync(rawUrl);
-                        if (resp.IsSuccessStatusCode)
-                        {
-                            using (var sourceStream = await resp.Content.ReadAsStreamAsync())
-                            using (var fileStream = new FileStream(sfd.FileName, FileMode.Create))
-                            {
-                                await sourceStream.CopyToAsync(fileStream);
-                            }
-                            videoList.Rows[videoURLrow].DefaultCellStyle.BackColor = Color.LightGreen;
-                            statusTXT.Text = $"Video saved to: {sfd.FileName}";
-                        }
-                        else
-                        {
-                            statusTXT.Text = $"Failed to download. HTTP code {resp.StatusCode}";
-                        }
+                        videoList.Rows[videoURLrow].DefaultCellStyle.BackColor = Color.LightGreen;
+                        openFolderBTN.Enabled = true;
+                        statusTXT.Text = $"Video saved ({source.Method}): {sfd.FileName}";
+                    }
+                    else
+                    {
+                        statusTXT.Text = "Failed to download video file.";
                     }
                 }
                 catch (Exception ex)
@@ -371,38 +598,35 @@ namespace TikTok_Downloader
                 }
 
                 // If user wants thumbnails
-                if (thumbCHK.Checked && !string.IsNullOrWhiteSpace(thumbUrl))
+                if (thumbCHK.Checked && !string.IsNullOrWhiteSpace(source.ThumbUrl))
                 {
                     string thumbPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), $"{videoID}.jpg");
                     try
                     {
-                        await DownloadThumbnailAsync(thumbUrl, thumbPath);
+                        await DownloadFileAsync(source.ThumbUrl, thumbPath, source.NeedsTikTokSession);
                     }
                     catch (Exception ex)
                     {
                         Console.WriteLine("Error downloading thumbnail => " + ex.Message);
                     }
                 }
+                progressBar.Value = 100;
             }
-        }
-
-        // Download thumbnail
-        private async Task DownloadThumbnailAsync(string thumbnailUrl, string savePath)
-        {
-            using (HttpClient client = new HttpClient())
+            finally
             {
-                var response = await client.GetAsync(thumbnailUrl);
-                using (var streamToReadFrom = await response.Content.ReadAsStreamAsync())
-                using (var streamToWriteTo = File.Open(savePath, FileMode.Create))
-                {
-                    await streamToReadFrom.CopyToAsync(streamToWriteTo);
-                }
+                isDownloading = false;
             }
         }
 
         // Bulk download
         private async void DownloadAllTikTokVideosAsync()
         {
+            if (isDownloading)
+            {
+                statusTXT.Text = "A download is already in progress.";
+                return;
+            }
+
             cancellationTokenSource = new CancellationTokenSource();
             var folderBrowserDialog = new FolderBrowserDialog { SelectedPath = lastDownloadedFolderPath };
 
@@ -410,123 +634,73 @@ namespace TikTok_Downloader
             {
                 lastDownloadedFolderPath = folderBrowserDialog.SelectedPath;
                 stopBTN.Enabled = true;
+                isDownloading = true;
 
-                foreach (DataGridViewRow row in videoList.Rows)
+                try
                 {
-                    if (cancellationTokenSource.Token.IsCancellationRequested)
+                    foreach (DataGridViewRow row in videoList.Rows)
                     {
-                        stopBTN.Enabled = false;
-                        break;
-                    }
+                        if (cancellationTokenSource.Token.IsCancellationRequested)
+                            break;
 
-                    string tikTokVideoUrl = row.Cells[3].Value?.ToString();
-                    if (!string.IsNullOrWhiteSpace(tikTokVideoUrl))
-                    {
+                        string tikTokVideoUrl = row.Cells[3].Value?.ToString();
+                        if (string.IsNullOrWhiteSpace(tikTokVideoUrl))
+                            continue;
+
                         string videoId = "TikTokVideo";
                         var m = Regex.Match(tikTokVideoUrl, @"(?<=video/)\d+");
                         if (m.Success) videoId = m.Value;
 
-                        string fileName = $"{videoId}.mp4";
-                        string filePath = Path.Combine(folderBrowserDialog.SelectedPath, fileName);
+                        string filePath = Path.Combine(folderBrowserDialog.SelectedPath, $"{videoId}.mp4");
                         if (File.Exists(filePath))
                         {
                             row.DefaultCellStyle.BackColor = Color.LightGreen;
                             continue;
                         }
 
-                        statusTXT.Text = $"Downloading {tikTokVideoUrl}...";
-                        progressBar.Value = 0;
+                        statusTXT.Text = $"Resolving {tikTokVideoUrl}...";
+                        progressBar.Value = 10;
 
-                        // SnapTik
-                        webBrowser.CoreWebView2.Navigate("https://snaptik.app");
-                        await WaitForPageLoadAsync();
-                        await Task.Delay(2000);
+                        var source = await ResolveVideoSourceAsync(tikTokVideoUrl, cancellationTokenSource.Token);
                         if (cancellationTokenSource.Token.IsCancellationRequested)
-                        {
-                            stopBTN.Enabled = false;
                             break;
-                        }
-
-                        await webBrowser.CoreWebView2.ExecuteScriptAsync($"document.getElementById('url').value = '{tikTokVideoUrl}'");
-                        await webBrowser.CoreWebView2.ExecuteScriptAsync("document.getElementById('url').click();");
-                        await webBrowser.CoreWebView2.ExecuteScriptAsync("document.querySelector('button[type=\"submit\"]').click()");
-                        await Task.Delay(2000);
-
-                        if (cancellationTokenSource.Token.IsCancellationRequested)
+                        if (source == null)
                         {
-                            stopBTN.Enabled = false;
-                            break;
-                        }
-
-                        bool foundLink = false;
-                        for (int i = 0; i < 30; i++)
-                        {
-                            var checkSelector = await webBrowser.CoreWebView2.ExecuteScriptAsync(
-                               "document.querySelector('.video-links a.button.download-file') !== null"
-                            );
-                            if (checkSelector.Contains("true"))
-                            {
-                                foundLink = true;
-                                break;
-                            }
-                            await Task.Delay(1000);
-                            if (cancellationTokenSource.Token.IsCancellationRequested) break;
-                        }
-                        if (!foundLink)
-                        {
-                            statusTXT.Text = "No SnapTik download link found.";
+                            statusTXT.Text = $"Could not get a download link for {videoId}, skipping.";
+                            row.DefaultCellStyle.BackColor = Color.MistyRose;
                             continue;
                         }
 
-                        var hrefJson = await webBrowser.CoreWebView2.ExecuteScriptAsync(
-                           "document.querySelector('.video-links a.button.download-file').getAttribute('href')"
-                        );
-                        string rawUrl = Regex.Unescape(hrefJson);
-                        if (rawUrl.StartsWith("\"") && rawUrl.EndsWith("\"") && rawUrl.Length > 1)
-                            rawUrl = rawUrl.Substring(1, rawUrl.Length - 2);
-
                         progressBar.Value = 60;
+                        statusTXT.Text = $"Downloading {videoId} via {source.Method}...";
 
-                        // Thumbnail
-                        var thumbJson = await webBrowser.CoreWebView2.ExecuteScriptAsync(
-                          "document.querySelector('img#thumbnail') ? document.querySelector('img#thumbnail').getAttribute('src') : ''"
-                        );
-                        string thumbUrl = Regex.Unescape(thumbJson);
-                        if (thumbUrl.StartsWith("\"") && thumbUrl.EndsWith("\"") && thumbUrl.Length > 1)
-                            thumbUrl = thumbUrl.Substring(1, thumbUrl.Length - 2);
-
-                        // Download video
                         try
                         {
-                            using (HttpClient client = new HttpClient())
+                            if (await DownloadFileAsync(source.VideoUrl, filePath, source.NeedsTikTokSession))
                             {
-                                var response = await client.GetAsync(rawUrl);
-                                if (response.IsSuccessStatusCode)
-                                {
-                                    using (var inStream = await response.Content.ReadAsStreamAsync())
-                                    using (var outFile = File.Open(filePath, FileMode.Create))
-                                    {
-                                        await inStream.CopyToAsync(outFile);
-                                    }
-                                    statusTXT.Text = $"Video saved to {filePath}";
-                                    lastDownloadedFolderPath = Path.GetDirectoryName(filePath);
-                                    openFolderBTN.Enabled = true;
-                                    row.DefaultCellStyle.BackColor = Color.LightGreen;
-                                }
+                                statusTXT.Text = $"Video saved to {filePath}";
+                                lastDownloadedFolderPath = Path.GetDirectoryName(filePath);
+                                openFolderBTN.Enabled = true;
+                                row.DefaultCellStyle.BackColor = Color.LightGreen;
+                            }
+                            else
+                            {
+                                row.DefaultCellStyle.BackColor = Color.MistyRose;
                             }
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine("Error downloading video: " + ex.Message);
+                            row.DefaultCellStyle.BackColor = Color.MistyRose;
                         }
 
                         // Download thumbnail if checked
-                        if (thumbCHK.Checked && !string.IsNullOrWhiteSpace(thumbUrl))
+                        if (thumbCHK.Checked && !string.IsNullOrWhiteSpace(source.ThumbUrl))
                         {
                             string thumbPath = Path.Combine(folderBrowserDialog.SelectedPath, $"{videoId}.jpg");
                             try
                             {
-                                await DownloadThumbnailAsync(thumbUrl, thumbPath);
+                                await DownloadFileAsync(source.ThumbUrl, thumbPath, source.NeedsTikTokSession);
                             }
                             catch (Exception ex)
                             {
@@ -535,10 +709,14 @@ namespace TikTok_Downloader
                         }
                     }
                 }
+                finally
+                {
+                    isDownloading = false;
+                    stopBTN.Enabled = false;
+                }
 
                 progressBar.Value = 100;
                 statusTXT.Text = "All Video Downloads complete";
-                stopBTN.Enabled = false;
                 MessageBox.Show("All Video Downloads complete");
             }
         }
