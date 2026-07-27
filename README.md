@@ -66,8 +66,10 @@ The status bar always shows which method was used.
 ## Building from Source
 
 1. Clone the repo and open `TikTok Downloader.sln` in Visual Studio 2019 or newer.
-2. Restore NuGet packages (`HtmlAgilityPack`, `Microsoft.Web.WebView2`). The `SplitButton` control ships in `lib/`.
+2. Restore NuGet packages (`HtmlAgilityPack`, `Microsoft.Web.WebView2`, `Fody`, `Costura.Fody`). The `SplitButton` control ships in `lib/`.
 3. Build — the project targets .NET Framework 4.8.
+
+The Release build produces a **single self-contained EXE**: all managed dependencies and the native WebView2 loader are embedded via Costura.Fody, so `TikTok Downloader.exe` can be distributed on its own. Only the .NET Framework 4.8 and the WebView2 Runtime need to be present on the target machine (both ship with Windows 10/11).
 
 ---
 

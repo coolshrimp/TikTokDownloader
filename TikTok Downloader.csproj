@@ -11,6 +11,8 @@
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <Prefer32Bit>false</Prefer32Bit>
     <Deterministic>true</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <NuGetPackageImportStamp>
@@ -68,18 +70,28 @@
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="HtmlAgilityPack, Version=1.11.71.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
-      <HintPath>packages\HtmlAgilityPack.1.11.71\lib\Net45\HtmlAgilityPack.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Web.WebView2.Core, Version=1.0.2903.40, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Web.WebView2.1.0.2903.40\lib\net462\Microsoft.Web.WebView2.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Web.WebView2.WinForms, Version=1.0.2903.40, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Web.WebView2.1.0.2903.40\lib\net462\Microsoft.Web.WebView2.WinForms.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Web.WebView2.Wpf, Version=1.0.2903.40, Culture=neutral, PublicKeyToken=2a8ab48044d2601e, processorArchitecture=MSIL">
-      <HintPath>packages\Microsoft.Web.WebView2.1.0.2903.40\lib\net462\Microsoft.Web.WebView2.Wpf.dll</HintPath>
-    </Reference>
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.71" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <PackageReference Include="Fody" Version="6.8.2">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Costura.Fody" Version="6.0.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Embed the native WebView2 loader for both architectures; Costura
+         extracts and preloads it at startup so the exe runs standalone. -->
+    <EmbeddedResource Include="$(NuGetPackageRoot)microsoft.web.webview2\1.0.2903.40\runtimes\win-x86\native\WebView2Loader.dll" Condition="Exists('$(NuGetPackageRoot)microsoft.web.webview2\1.0.2903.40\runtimes\win-x86\native\WebView2Loader.dll')">
+      <LogicalName>WebView2Loader.x86.dll</LogicalName>
+      <Link>native\x86\WebView2Loader.dll</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(NuGetPackageRoot)microsoft.web.webview2\1.0.2903.40\runtimes\win-x64\native\WebView2Loader.dll" Condition="Exists('$(NuGetPackageRoot)microsoft.web.webview2\1.0.2903.40\runtimes\win-x64\native\WebView2Loader.dll')">
+      <LogicalName>WebView2Loader.x64.dll</LogicalName>
+      <Link>native\x64\WebView2Loader.dll</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="SplitButton">
       <HintPath>lib\SplitButton.dll</HintPath>
     </Reference>
@@ -117,7 +129,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="packages.config" />
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -150,11 +161,4 @@
     <Content Include="tiktok.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('packages\Microsoft.Web.WebView2.1.0.2903.40\build\Microsoft.Web.WebView2.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Web.WebView2.1.0.2903.40\build\Microsoft.Web.WebView2.targets'))" />
-  </Target>
-  <Import Project="packages\Microsoft.Web.WebView2.1.0.2903.40\build\Microsoft.Web.WebView2.targets" Condition="Exists('packages\Microsoft.Web.WebView2.1.0.2903.40\build\Microsoft.Web.WebView2.targets')" />
 </Project>
