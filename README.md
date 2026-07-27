@@ -23,7 +23,7 @@ Grab the latest **single-file EXE** from the [Releases page](../../releases/late
 - **Likes / Favorites / Reposts**: Retrieve liked, favorited, or reposted videos (if you're logged in inside the embedded browser).
 - **CSV Export**: Export the collected video list to a CSV file.
 - **Progress Tracking**: Real-time status and progress for scraping and downloads.
-- **Tray Icon & Background Downloads**: Minimize the window to the system tray while downloads keep running. The tray tooltip and menu show live progress (e.g. "Downloading 20/300"), with quick actions to show/hide the window, open the download folder, stop downloads, or exit.
+- **Tray Icon & Background Downloads**: Closing the window (X) hides the app to the system tray while downloads keep running (minimize goes to the taskbar as usual; quit via the tray menu's Exit). The tray tooltip and menu show live progress (e.g. "Downloading 20/300"), with quick actions to show/hide the window, open the download folder, stop downloads, or exit.
 - **Login Stays in the Browser**: Logging in to TikTok happens inside the embedded WebView2 browser only — credentials and cookies live in the browser profile, never in the app.
 - **Thumbnail Option**: Download thumbnails alongside the videos for easy reference.
 

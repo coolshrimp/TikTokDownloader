@@ -36,6 +36,7 @@ namespace TikTok_Downloader
         private ContextMenuStrip trayMenu;
         private ToolStripMenuItem trayStatusItem;
         private bool trayBalloonShown;
+        private bool exitRequested;
 
         private const string FallbackUserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -200,7 +201,7 @@ namespace TikTok_Downloader
   <div class='card'>
     <h2 style='margin-top:0'>Tray Icon &amp; Background Downloads</h2>
     <ul>
-      <li><b>Minimize</b> the window and it hides to the system tray while downloads keep running.</li>
+      <li><b>Closing (X)</b> hides the app to the system tray while downloads keep running; minimize goes to the taskbar as usual. Quit via the tray menu's <b>Exit</b>.</li>
       <li>Hover the tray icon for live progress (e.g. <b>Downloading 20/300</b>); right-click it for Show/Hide, Open Folder, Stop, and Exit.</li>
     </ul>
   </div>
@@ -493,7 +494,7 @@ namespace TikTok_Downloader
             trayMenu.Items.Add("Open Download Folder", null, (s, e) => openFolderBTN_Click(s, e));
             trayMenu.Items.Add("Stop Downloads", null, (s, e) => cancellationTokenSource?.Cancel());
             trayMenu.Items.Add(new ToolStripSeparator());
-            trayMenu.Items.Add("Exit", null, (s, e) => Close());
+            trayMenu.Items.Add("Exit", null, (s, e) => { exitRequested = true; Close(); });
 
             trayIcon = new NotifyIcon
             {
@@ -528,23 +529,6 @@ namespace TikTok_Downloader
             var tip = "TikTok Downloader - " + text;
             if (tip.Length > 63) tip = tip.Substring(0, 63); // NotifyIcon.Text hard limit
             trayIcon.Text = tip;
-        }
-
-        // Minimize => hide to tray; downloads keep running in the background
-        protected override void OnResize(EventArgs e)
-        {
-            base.OnResize(e);
-            if (WindowState == FormWindowState.Minimized && trayIcon != null)
-            {
-                Hide();
-                if (isDownloading && !trayBalloonShown)
-                {
-                    trayBalloonShown = true;
-                    trayIcon.BalloonTipTitle = "TikTok Downloader";
-                    trayIcon.BalloonTipText = "Downloads continue in the background. Double-click the tray icon to restore.";
-                    trayIcon.ShowBalloonTip(3000);
-                }
-            }
         }
 
         // Toggle form size
@@ -1111,8 +1095,24 @@ namespace TikTok_Downloader
             videoList.Rows.Clear();
         }
 
+        // Close (X) hides to the tray; the app only exits via the tray menu.
+        // Minimize behaves normally (taskbar).
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if (!exitRequested && e.CloseReason == CloseReason.UserClosing)
+            {
+                e.Cancel = true;
+                Hide();
+                if (!trayBalloonShown && trayIcon != null)
+                {
+                    trayBalloonShown = true;
+                    trayIcon.BalloonTipTitle = "TikTok Downloader";
+                    trayIcon.BalloonTipText = "Still running in the tray. Double-click the icon to reopen, or right-click and Exit to quit.";
+                    trayIcon.ShowBalloonTip(3000);
+                }
+                return;
+            }
+
             Properties.Settings.Default.lastUser = userTXT.Text;
             Properties.Settings.Default.lastFolder = lastDownloadedFolderPath;
             Properties.Settings.Default.lastThumb = thumbCHK.Checked;
