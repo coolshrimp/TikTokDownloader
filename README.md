@@ -84,6 +84,8 @@ The status bar always shows which method was used.
 ### v6
 - **Added**: Native TikTok downloads — direct media URL pulled from TikTok's own page data, used as the primary method.
 - **Added**: System tray icon with live download status ("Downloading 20/300"), show/hide, open-folder, stop, and exit actions. Minimizing hides the window to the tray while downloads continue.
+- **Added**: Built-in "How to Use" guide shown in the browser panel (also available from the tray menu), plus tooltips on all controls.
+- **Changed**: The app now starts compact with the browser panel hidden; first launch starts expanded with the guide visible.
 - **Changed**: SnapTik is now an automatic fallback instead of the primary downloader.
 - **Fixed**: SnapTik link submission (the URL was never registered by SnapTik's page, so downloads silently failed).
 - **Fixed**: App no longer freezes when a page fails to load — navigation now has a 30-second timeout.

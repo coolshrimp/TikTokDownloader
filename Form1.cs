@@ -71,6 +71,7 @@ namespace TikTok_Downloader
             thumbCHK.Checked = Properties.Settings.Default.lastThumb;
 
             InitializeTrayIcon();
+            InitializeTooltips();
 
             // Ensure WebView2 is initialized
             Console.WriteLine("Form1_Load: Ensuring WebView2 is initialized...");
@@ -81,8 +82,103 @@ namespace TikTok_Downloader
                 webBrowser.CoreWebView2.Settings.IsStatusBarEnabled = false;
             }
 
+            // Start compact (browser panel hidden). First run starts expanded
+            // with the how-to guide visible so new users see what to do.
+            bool firstRun = string.IsNullOrWhiteSpace(userTXT.Text);
+            _isSize1 = !firstRun;
+            this.Size = _isSize1 ? _size1 : _size2;
+            expandBTN.Text = _isSize1 ? "Expand ⮞" : "Shrink ⮜";
+            ShowGuidePage();
+            statusTXT.Text = "Enter a username, then click Latest Videos or All Videos";
+
             Console.WriteLine("Form1_Load: Load event complete.");
         }
+
+        // In-app how-to guide, shown in the browser panel until a page is loaded
+        private void ShowGuidePage()
+        {
+            if (webBrowser.CoreWebView2 == null) return;
+            webBrowser.CoreWebView2.NavigateToString(GuideHtml);
+        }
+
+        private void ShowHowToUse()
+        {
+            Show();
+            WindowState = FormWindowState.Normal;
+            Activate();
+            if (_isSize1)
+            {
+                _isSize1 = false;
+                this.Size = _size2;
+                expandBTN.Text = "Shrink ⮜";
+            }
+            ShowGuidePage();
+        }
+
+        private void InitializeTooltips()
+        {
+            var tips = new ToolTip { AutoPopDelay = 10000 };
+            tips.SetToolTip(userTXT, "TikTok username without the @");
+            tips.SetToolTip(getVideosDDB, "Load the videos currently visible on the profile.\nDropdown: Reposts / Liked / Favorited (login required for some).");
+            tips.SetToolTip(allVideoDDB, "Auto-scroll the whole profile to load every video.\nDropdown: All Reposts / All Liked / All Favorited.");
+            tips.SetToolTip(downloadAllBTN, "Download every video in the list to a folder.\nAlready-downloaded videos are skipped.");
+            tips.SetToolTip(stopBTN, "Stop the current bulk download");
+            tips.SetToolTip(thumbCHK, "Also save a .jpg thumbnail next to each video");
+            tips.SetToolTip(openFolderBTN, "Open the last download folder");
+            tips.SetToolTip(SaveBTN, "Export the video list to a CSV file");
+            tips.SetToolTip(expandBTN, "Show/hide the browser panel (guide, TikTok login, download progress)");
+        }
+
+        private const string GuideHtml = @"<!DOCTYPE html>
+<html><head><meta charset='utf-8'><title>How to Use</title><style>
+  body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #eee; margin: 0; padding: 32px 40px; line-height: 1.55; }
+  h1 { color: #fff; font-size: 26px; margin-top: 0; }
+  h1 .tik { color: #25F4EE; } h1 .tok { color: #FE2C55; }
+  h2 { color: #25F4EE; font-size: 17px; margin: 26px 0 8px; }
+  ol li, ul li { margin-bottom: 8px; }
+  .card { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
+  .pill { display: inline-block; background: #FE2C55; color: #fff; border-radius: 20px; padding: 1px 10px; font-size: 12px; margin-right: 6px; }
+  .pill.alt { background: #444; }
+  b { color: #fff; }
+  .muted { color: #999; font-size: 13px; }
+</style></head><body>
+  <h1><span class='tik'>Tik</span><span class='tok'>Tok</span> Downloader &mdash; How to Use</h1>
+
+  <div class='card'>
+    <h2 style='margin-top:0'>Quick Start</h2>
+    <ol>
+      <li>Enter a TikTok <b>username</b> (without the @) in the box on the left.</li>
+      <li>Click <b>📺 Latest Videos</b> for what's visible, or <b>🎞 All Videos</b> to auto-scroll and load the entire profile.</li>
+      <li>Click <b>Download</b> on a single row, or <b>📥 Download All</b> to save everything to a folder.</li>
+      <li>Optional: check <b>Thumbnails</b> to also save a .jpg preview per video, and use <b>💾 Save List</b> to export a CSV.</li>
+    </ol>
+  </div>
+
+  <div class='card'>
+    <h2 style='margin-top:0'>How Downloads Work</h2>
+    <p><span class='pill'>Primary</span> Videos are pulled <b>directly from TikTok</b> using this browser panel's session &mdash; the same source as TikTok's own download button.</p>
+    <p><span class='pill alt'>Fallback</span> If a video can't be fetched directly (downloads disabled, region lock, rate limit), <b>SnapTik</b> is used automatically.</p>
+  </div>
+
+  <div class='card'>
+    <h2 style='margin-top:0'>Logging In (optional but recommended)</h2>
+    <ul>
+      <li>Liked / Favorited tabs and some videos require being logged in.</li>
+      <li>Just log in to <b>tiktok.com right here in this panel</b> &mdash; your session stays in the embedded browser profile. This app <b>never sees or stores your credentials</b>.</li>
+    </ul>
+  </div>
+
+  <div class='card'>
+    <h2 style='margin-top:0'>Tray Icon &amp; Background Downloads</h2>
+    <ul>
+      <li><b>Minimize</b> the window and it hides to the system tray while downloads keep running.</li>
+      <li>Hover the tray icon for live progress (e.g. <b>Downloading 20/300</b>); right-click it for Show/Hide, Open Folder, Stop, and Exit.</li>
+    </ul>
+  </div>
+
+  <p class='muted'>Green rows = downloaded &bull; Red rows = failed &bull; Already-downloaded files are skipped in bulk mode.<br>
+  Created by Coolshrimp Modz &mdash; coolshrimpmodz.com</p>
+</body></html>";
 
         // Helper to wait for next page NavigationCompleted.
         // Times out instead of hanging forever if navigation stalls (this was
@@ -313,6 +409,7 @@ namespace TikTok_Downloader
             trayMenu.Items.Add(trayStatusItem);
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add("Show / Hide Window", null, (s, e) => ToggleWindowVisibility());
+            trayMenu.Items.Add("How to Use", null, (s, e) => ShowHowToUse());
             trayMenu.Items.Add("Open Download Folder", null, (s, e) => openFolderBTN_Click(s, e));
             trayMenu.Items.Add("Stop Downloads", null, (s, e) => cancellationTokenSource?.Cancel());
             trayMenu.Items.Add(new ToolStripSeparator());
